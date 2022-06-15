@@ -92,6 +92,33 @@ h1 a:hover {
 
 }
 
+.heart {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+@keyframes animateHeart {
+    0% {
+      transform: translate(-50%, -50%) scale(1.0);
+    }
+    8% {
+      transform: translate(-50%, -50%) scale(1.05);
+    }
+    16% {
+      transform: translate(-50%, -50%) scale(1.0);
+    }
+    24% {
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+    50% {
+      transform: translate(-50%, -50%) scale(1.0);
+    }
+    100% {
+      transform: translate(-50%, -50%) scale(1.0);
+    }
+  }
+
 footer a {
     color: var(--light-green);
 }

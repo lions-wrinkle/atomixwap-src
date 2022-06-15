@@ -58,7 +58,9 @@ export class SwapLinkForm {
                       <div id="royaltiesdHelp" class="form-text"></div>
                         </div>
                         <div class="col-6 position-relative">
-                        <span class="position-absolute top-50 start-50 translate-middle" id="royaltiesLove">&#128154;</span>
+                        <span class="position-absolute heart" id="royaltiesLoveRed" hidden>&#10084;</span>
+                        <span class="position-absolute heart" id="royaltiesLoveGreen">&#128154;</span>
+                        
                         </div>
                       </div>
                        
@@ -170,7 +172,8 @@ export class SwapLinkForm {
     const inputCurrency = this.ui.querySelector("#inputCurrency");
     const inputRoyalties = this.ui.querySelector("#inputRoyalties");
     const royaltiesdHelp = this.ui.querySelector("#royaltiesdHelp");
-    const greenHeart = this.ui.querySelector("#royaltiesLove");
+    const greenHeart = this.ui.querySelector("#royaltiesLoveGreen");
+    const redHeart = this.ui.querySelector("#royaltiesLoveRed");
 
     if (inputCurrency.value !== "algo" || this.isAssetCreator) {
       inputRoyalties.value = 0;
@@ -185,6 +188,7 @@ export class SwapLinkForm {
       }
       
       greenHeart.hidden = true;
+      redHeart.hidden = true;
     } else {
       inputRoyalties.value = this.defaultRoyalties;
       inputRoyalties.disabled = false;
@@ -202,15 +206,34 @@ export class SwapLinkForm {
       "#royaltiesValueLabel"
     ).textContent = `${royaltiesSlider.value} %`;
 
-    const greenHeart = this.ui.querySelector("#royaltiesLove");
+    const greenHeart = this.ui.querySelector("#royaltiesLoveGreen");
+    const redHeart = this.ui.querySelector("#royaltiesLoveRed");
+
     const minFontSize = 1.0;
     const maxFontSize = 4.5;
-    const sliderMin = royaltiesSlider.min;
-    const sliderMax = royaltiesSlider.max;
+    const sliderMin = Number(royaltiesSlider.min);
+    const sliderMax = Number(royaltiesSlider.max);
 
     const fontSize = minFontSize + (maxFontSize - minFontSize)*((royaltiesSlider.value - royaltiesSlider.min)/(royaltiesSlider.max - royaltiesSlider.min));
 
     greenHeart.style = `font-size: ${fontSize}rem`;
+
+    if (royaltiesSlider.value > sliderMin + (sliderMax - sliderMin)/2){
+
+      const redHeartOpacity = (royaltiesSlider.value - (sliderMin + (sliderMax - sliderMin)/2))/((sliderMax - sliderMin)/2);
+
+      let animation = '';
+      if (royaltiesSlider.value === royaltiesSlider.max){
+        animation = 'animation: animateHeart 1.2s infinite;';
+      }
+
+      redHeart.hidden = false;
+      redHeart.style = `font-size: ${fontSize}rem; ${animation}`;
+      greenHeart.style = `font-size: ${fontSize}rem; opacity: ${1-redHeartOpacity}`;
+
+    } else {
+      redHeart.hidden = true;
+    }
     
   }
 
