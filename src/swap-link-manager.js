@@ -68,49 +68,53 @@ export class SwapLinkManager {
       });
 
     //payment transaction
-    if (fields.currency === "algo") {
-      let microAlgosPrice = Math.round(fields.price * 1000000);
+    if (fields.price > 0) {
+      //only if price > 0
+      if (fields.currency === "algo") {
+        let microAlgosPrice = Math.round(fields.price * 1000000);
 
-      if (
-        fields.royalties &&
-        fields.royalties > 0 &&
-        fields.currency === "algo"
-      ) {
-        microAlgosPrice =
-          microAlgosPrice - Math.round(fields.royalties * 1000000);
+        if (
+          fields.royalties &&
+          fields.royalties > 0 &&
+          fields.currency === "algo"
+        ) {
+          microAlgosPrice =
+            microAlgosPrice - Math.round(fields.royalties * 1000000);
+        }
+
+        this.transactions.payment =
+          algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+            suggestedParams: { ...params },
+            from: fields.buyerAddress,
+            to: fields.sellerAddress,
+            amount: microAlgosPrice,
+          });
+      } else {
+        const currencyAssetId = parseInt(fields.currency);
+
+        this.transactions.payment =
+          algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+            suggestedParams: { ...params },
+            from: fields.buyerAddress,
+            to: fields.sellerAddress,
+            assetIndex: currencyAssetId,
+            amount: Math.round(fields.price),
+          });
+
+        this.transactions.optinCurrency =
+          algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+            suggestedParams: { ...params },
+            from: fields.sellerAddress,
+            to: fields.sellerAddress,
+            assetIndex: currencyAssetId,
+            amount: 0,
+          });
       }
-
-      this.transactions.payment =
-        algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-          suggestedParams: { ...params },
-          from: fields.buyerAddress,
-          to: fields.sellerAddress,
-          amount: microAlgosPrice,
-        });
-    } else {
-      const currencyAssetId = parseInt(fields.currency);
-
-      this.transactions.payment =
-        algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-          suggestedParams: { ...params },
-          from: fields.buyerAddress,
-          to: fields.sellerAddress,
-          assetIndex: currencyAssetId,
-          amount: Math.round(fields.price),
-        });
-
-      this.transactions.optinCurrency =
-        algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-          suggestedParams: { ...params },
-          from: fields.sellerAddress,
-          to: fields.sellerAddress,
-          assetIndex: currencyAssetId,
-          amount: 0,
-        });
     }
 
     //royalties
     if (
+      fields.price > 0 &&
       fields.royalties &&
       fields.royalties > 0 &&
       fields.currency === "algo"
@@ -137,7 +141,9 @@ export class SwapLinkManager {
       transactionsArray.push(this.transactions.optinCurrency);
     }
 
-    transactionsArray.push(this.transactions.payment);
+    if (this.transactions.payment) {
+      transactionsArray.push(this.transactions.payment);
+    }
 
     if (this.transactions.royaltiesPayment) {
       transactionsArray.push(this.transactions.royaltiesPayment);
@@ -171,15 +177,17 @@ export class SwapLinkManager {
       transactionsToSign
     );
 
-    let currency;
-    let price;
+    let currency = "algo";
+    let price = 0;
 
-    if (this.transactions.payment.type === "pay") {
-      currency = "algo";
-      price = this.transactions.payment.amount / 1000000;
-    } else {
-      currency = this.transactions.payment.assetIndex;
-      price = this.transactions.payment.amount;
+    if (this.transactions.payment) {
+      if (this.transactions.payment.type === "pay") {
+        currency = "algo";
+        price = this.transactions.payment.amount / 1000000;
+      } else {
+        currency = this.transactions.payment.assetIndex;
+        price = this.transactions.payment.amount;
+      }
     }
 
     let outputJson = {
@@ -196,7 +204,7 @@ export class SwapLinkManager {
       );
     }
 
-    if (this.transactions.royaltiesPayment) {
+    if (this.transactions.royaltiesPayment && this.transactions.payment) {
       outputJson.royalties =
         this.transactions.royaltiesPayment.amount / 1000000;
       outputJson.price =
@@ -219,10 +227,11 @@ export class SwapLinkManager {
     successCallback,
     failedCallback
   ) {
-    let transactionsToSign = [
-      this.transactions.optin,
-      this.transactions.payment,
-    ];
+    let transactionsToSign = [this.transactions.optin];
+
+    if (this.transactions.payment) {
+      transactionsToSign.push(this.transactions.payment);
+    }
 
     if (this.transactions.royaltiesPayment) {
       transactionsToSign.push(this.transactions.royaltiesPayment);
@@ -241,9 +250,13 @@ export class SwapLinkManager {
       //algo transaction
       finalSignedTransactions = [
         signedTransactions[0],
-        signedTransferTransaction,
-        signedTransactions[1],
+        signedTransferTransaction
       ];
+
+      if (this.transactions.payment) {
+        finalSignedTransactions.push(signedTransactions[1]);
+      }
+
     } else {
       //other currency transaction
       finalSignedTransactions = [

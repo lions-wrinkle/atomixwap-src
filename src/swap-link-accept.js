@@ -18,7 +18,6 @@ export class SwapLinkAccept {
   }
 
   async resolveData(swapData) {
-
     //decode data
     const decodedData = atob(swapData);
     const jsonData = JSON.parse(decodedData);
@@ -31,7 +30,7 @@ export class SwapLinkAccept {
       this.signedTxTransfer
     );
 
-    if (jsonData.signedOptinCurrencyTx){
+    if (jsonData.signedOptinCurrencyTx) {
       this.signedOptinCurrencyTx = SwapLinkManager.base64ToSignedTx(
         jsonData.signedOptinCurrencyTx
       );
@@ -57,18 +56,13 @@ export class SwapLinkAccept {
     const nodeStatus = await this.algodClient.status().do();
     const lastRound = nodeStatus["last-round"];
 
-    if (lastRound >= this.fields.lastRound){
-
+    if (lastRound >= this.fields.lastRound) {
       this.ui.innerHTML = `<h4>Accept swap</h4>
         <div class="alert alert-danger" role="alert">This link expired.`;
-
     } else if (this.fields.buyerAddress !== this.walletConnect.walletAddress) {
-
       this.ui.innerHTML = `<h4>Accept swap</h4>
         <div class="alert alert-warning" role="alert">This swap can only be accepted by the following wallet:<br><span style="word-break: break-all;">${this.fields.buyerAddress}</span></div>`;
-
     } else {
-      
       this.ui.innerHTML = `<h4>Accept swap</h4>
         Loading...`;
 
@@ -82,41 +76,46 @@ export class SwapLinkAccept {
   }
 
   async generateTransactions() {
-
     await this.swapLinkManager.generateTransactions(this.fields);
 
     this.displayUI();
-
-    
   }
 
-  displayUI(){
-
+  displayUI() {
     //add royalties if needed
     const transactions = this.swapLinkManager.transactions;
 
-        const assetId = transactions.assetTransfer.assetIndex;
-        const buyerAddress = algosdk.encodeAddress(transactions.assetTransfer.to.publicKey);
-        const sellerAddress = algosdk.encodeAddress(transactions.assetTransfer.from.publicKey);
+    const assetId = transactions.assetTransfer.assetIndex;
+    const buyerAddress = algosdk.encodeAddress(
+      transactions.assetTransfer.to.publicKey
+    );
+    const sellerAddress = algosdk.encodeAddress(
+      transactions.assetTransfer.from.publicKey
+    );
 
-        let price = transactions.payment.amount;
-        let currencyString;
+    let priceLI = "";
 
-        if (transactions.payment.type === "pay"){
-            //convert microalgo to algo
-            price = price/1000000;
-            currencyString = "ALGO";
-        } else {
-            
-            currencyString = `${this.swapLinkManager.currencyAsset.params["unit-name"]} (ASA ${this.swapLinkManager.currencyAsset.index})`;
-        }
-        
+    if (transactions.payment) {
+      let price = transactions.payment.amount;
+      let currencyString;
+
+      if (transactions.payment.type === "pay") {
+        //convert microalgo to algo
+        price = price / 1000000;
+        currencyString = "ALGO";
+      } else {
+        currencyString = `${this.swapLinkManager.currencyAsset.params["unit-name"]} (ASA ${this.swapLinkManager.currencyAsset.index})`;
+      }
+
+      priceLI = `<li>You'll send <span class="price">${price} ${currencyString}</span><br>
+      <span class="wallet-info">TO ${sellerAddress}</span></li>`;
+    }
+
     this.ui.innerHTML = `<h4>Accept swap</h4>
         <div class="row">
             <div class="col-md-6">
               <ul>
-                <li>You'll send <span class="price">${price} ${currencyString}</span><br>
-                <span class="wallet-info">TO ${sellerAddress}</span></li>
+                ${priceLI}
                 <li>You'll receive asset <strong><a href="https://www.nftexplorer.app/asset/${assetId}" target="_blank">${assetId}</a></strong><br><span id="assetName">(${this.swapLinkManager.asset.params.name})</span></li>
               </ul>
             </div>
@@ -134,11 +133,9 @@ export class SwapLinkAccept {
             <button type="submit" class="btn btn-generate fw-bold" id="buttonAccept">Accept & sign</button>
         </form>`;
 
-      this.ui
-        .querySelector("form")
-        .addEventListener("submit", this.submitAccept.bind(this));
-
-        
+    this.ui
+      .querySelector("form")
+      .addEventListener("submit", this.submitAccept.bind(this));
 
     if (transactions.royaltiesPayment) {
       const listPreview = this.ui.querySelector("ul");
@@ -166,12 +163,10 @@ export class SwapLinkAccept {
     }
 
     //load asset imazge
-    loadAssetImage(assetId, this.ui.querySelector('#imgAssetPreview'), 512);
-
+    loadAssetImage(assetId, this.ui.querySelector("#imgAssetPreview"), 512);
   }
 
   async submitAccept(event) {
-
     //cancel default behaviour when submiting a form
     event.preventDefault();
 
@@ -180,8 +175,8 @@ export class SwapLinkAccept {
     buttonAccept.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
     Waiting for signatures...`;
 
-    if (this.walletConnect.walletType === 'pera'){
-      this.ui.querySelector('#sign-info').innerHTML = `
+    if (this.walletConnect.walletType === "pera") {
+      this.ui.querySelector("#sign-info").innerHTML = `
       <div class="alert alert-primary d-flex align-items-center" role="alert">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-phone" viewBox="0 0 16 16">
           <path d="M11 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h6zM5 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H5z"/>
@@ -192,7 +187,8 @@ export class SwapLinkAccept {
     }
 
     this.swapLinkManager.signAndCommitTransactions(
-      this.signedTxTransfer, this.signedOptinCurrencyTx,
+      this.signedTxTransfer,
+      this.signedOptinCurrencyTx,
       () => {
         //signed
         buttonAccept.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -203,7 +199,7 @@ export class SwapLinkAccept {
         buttonAccept.hidden = true;
 
         this.ui.innerHTML = `<h4>Swapped 🥳</h4>
-        Swap is now complete for asset <a href="https://www.nftexplorer.app/asset/${this.swapLinkManager.asset.index}">${this.swapLinkManager.asset.index}</a> (${this.swapLinkManager.asset.params.name}).`;
+        You received asset <a href="https://www.nftexplorer.app/asset/${this.swapLinkManager.asset.index}">${this.swapLinkManager.asset.index}</a> (${this.swapLinkManager.asset.params.name}).`;
       },
       (err) => {
         //failed
@@ -213,7 +209,5 @@ export class SwapLinkAccept {
             <div class="alert alert-danger" role="alert">Error:<br>${err}</div>`;
       }
     );
-
-    
   }
 }

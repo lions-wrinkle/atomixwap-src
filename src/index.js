@@ -7,7 +7,7 @@ import { SwapLinkConfirm } from './swap-link-confirm';
 import algosdk, { makeApplicationClearStateTxn } from "algosdk";
 import { SwapLinkAccept } from './swap-link-accept';
 
-const network = "MAINNET"
+const network = "TESTNET"
 
 let algodURL;
 let algoIndexerURL;

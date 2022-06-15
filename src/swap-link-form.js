@@ -37,7 +37,7 @@ export class SwapLinkForm {
 
                         <div class="row">
                             <div class="col">
-                                <input type="number" class="form-control" id="inputPrice" step="1" required>
+                                <input type="number" class="form-control" id="inputPrice" min="0" step="1" required>
                             </div>
                             <div class="col">
                                 <select class="form-select" id="inputCurrency" aria-label="Select currency">

@@ -23,17 +23,26 @@ export class SwapLinkConfirm {
         const buyerAddress = algosdk.encodeAddress(transactions.assetTransfer.to.publicKey);
         const sellerAddress = algosdk.encodeAddress(transactions.assetTransfer.from.publicKey);
 
-        let price = transactions.payment.amount;
+        let price;
         let currencyString;
 
-        if (transactions.payment.type === "pay"){
-            //convert microalgo to algo
-            price = price/1000000;
-            currencyString = "ALGO";
+        if (transactions.payment){
+
+            price = transactions.payment.amount;
+
+            if (transactions.payment.type === "pay"){
+                //convert microalgo to algo
+                price = price/1000000;
+                currencyString = "ALGO";
+            } else {
+                
+                currencyString = `${this.swapLinkGenerator.currencyAsset.params["unit-name"]} (ASA ${this.swapLinkGenerator.currencyAsset.index})`;
+            }
         } else {
-            
-            currencyString = `${this.swapLinkGenerator.currencyAsset.params["unit-name"]} (ASA ${this.swapLinkGenerator.currencyAsset.index})`;
+            price = 'nothing';
+            currencyString = '';
         }
+        
 
         this.ui.innerHTML = `<h4>Swap link</h4>
         <div class="row mb-3">
