@@ -189,8 +189,8 @@ export class SwapLinkForm {
       
       greenHeart.hidden = true;
       redHeart.hidden = true;
-    } else {
-      inputRoyalties.value = this.defaultRoyalties;
+    } else  {
+      //inputRoyalties.value = this.defaultRoyalties;
       inputRoyalties.disabled = false;
       royaltiesdHelp.textContent = "";
       greenHeart.hidden = false;
@@ -201,6 +201,8 @@ export class SwapLinkForm {
 
   royaltiesChange(event) {
     const royaltiesSlider = this.ui.querySelector("#inputRoyalties");
+
+    console.log(royaltiesSlider.value)
     
     this.ui.querySelector(
       "#royaltiesValueLabel"
@@ -238,6 +240,7 @@ export class SwapLinkForm {
   }
 
   async validate() {
+
     await this.assetIdFocusOut();
 
     this.data.assetId = this.ui.querySelector("#inputAssetId").value;
