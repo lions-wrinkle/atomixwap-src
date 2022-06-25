@@ -191,6 +191,7 @@ export class SwapLinkAccept {
       this.signedOptinCurrencyTx,
       () => {
         //signed
+        this.ui.querySelector("#sign-info").textContent = '';
         buttonAccept.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
         Sending transactions...`;
       },

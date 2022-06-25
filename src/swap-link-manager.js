@@ -167,14 +167,24 @@ export class SwapLinkManager {
 
   //seller
   async signAndGetLink(baseURL) {
-    let transactionsToSign = [this.transactions.assetTransfer];
 
-    if (this.transactions.optinCurrency) {
-      transactionsToSign.push(this.transactions.optinCurrency);
+    let transactionsGroup = [];
+    let transactionsIndexes = {};
+
+    let i = 0;
+
+    for (const txName in this.transactions){
+
+      if (this.transactions[txName]){
+        transactionsGroup.push(this.transactions[txName]);
+        transactionsIndexes[txName] = i;
+        i++;
+      }
+
     }
 
     const signedTransferTransaction = await this.walletConnect.signTransactions(
-      transactionsToSign
+      transactionsGroup
     );
 
     let currency = "algo";
@@ -194,13 +204,13 @@ export class SwapLinkManager {
       price: price,
       currency: currency,
       signedTransferTx: SwapLinkManager.signedTxToBase64(
-        signedTransferTransaction[0]
+        signedTransferTransaction[transactionsIndexes['assetTransfer']]
       ),
     };
 
     if (this.transactions.optinCurrency) {
       outputJson.signedOptinCurrencyTx = SwapLinkManager.signedTxToBase64(
-        signedTransferTransaction[1]
+        signedTransferTransaction[transactionsIndexes['optinCurrency']]
       );
     }
 
@@ -227,18 +237,23 @@ export class SwapLinkManager {
     successCallback,
     failedCallback
   ) {
-    let transactionsToSign = [this.transactions.optin];
 
-    if (this.transactions.payment) {
-      transactionsToSign.push(this.transactions.payment);
-    }
+    let transactionsGroup = [];
+    let transactionsIndexes = {};
 
-    if (this.transactions.royaltiesPayment) {
-      transactionsToSign.push(this.transactions.royaltiesPayment);
+    let i = 0;
+    for (const txName in this.transactions){
+
+      if (this.transactions[txName]){
+        transactionsGroup.push(this.transactions[txName]);
+        transactionsIndexes[txName] = i;
+        i++;
+      }
+
     }
 
     const signedTransactions = await this.walletConnect.signTransactions(
-      transactionsToSign
+      transactionsGroup
     );
 
     //call callback
@@ -249,26 +264,26 @@ export class SwapLinkManager {
     if (!this.transactions.optinCurrency) {
       //algo transaction
       finalSignedTransactions = [
-        signedTransactions[0],
+        signedTransactions[transactionsIndexes['optin']],
         signedTransferTransaction
       ];
 
       if (this.transactions.payment) {
-        finalSignedTransactions.push(signedTransactions[1]);
+        finalSignedTransactions.push(signedTransactions[transactionsIndexes['payment']]);
       }
 
     } else {
       //other currency transaction
       finalSignedTransactions = [
-        signedTransactions[0],
+        signedTransactions[transactionsIndexes['optin']],
         signedTransferTransaction,
         signedOptinCurrencyTransaction,
-        signedTransactions[1],
+        signedTransactions[transactionsIndexes['payment']],
       ];
     }
 
     if (this.transactions.royaltiesPayment) {
-      finalSignedTransactions.push(signedTransactions[2]);
+      finalSignedTransactions.push(signedTransactions[transactionsIndexes['royaltiesPayment']]);
     }
 
     //send to the network
@@ -279,7 +294,8 @@ export class SwapLinkManager {
         .sendRawTransaction(finalSignedTransactions)
         .do();
     } catch (err) {
-      failedCallback(err.response.body.message);
+      console.log(err);
+      failedCallback(err);
       return;
     }
 

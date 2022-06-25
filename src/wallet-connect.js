@@ -152,11 +152,36 @@ async signTransactions(transactions){
 
     if (this.walletType === 'myalgo'){
 
-        const transactionsToSign = transactions.map(tx => tx.toByte())
+        const transactionsToSign = [];
+        let indexesMatch = {};
 
+        let i  = 0;
+        let j = 0;
+
+        for (const tx of transactions){
+
+          if (algosdk.encodeAddress(tx.from.publicKey) === this.walletAddress){
+            transactionsToSign.push(tx.toByte());
+            indexesMatch[j] = i;
+            j++;
+          }
+
+          i++;
+        }
+
+        signedTransactions = new Array(transactions.length);
+        
         try {
-            signedTransactions = await this.wallet.signTransaction(transactionsToSign);
-            signedTransactions = signedTransactions.map(tx => tx.blob)
+            const myalgoSignedTransactions = await this.wallet.signTransaction(transactionsToSign);
+
+            let j = 0;
+            for (const signedTx of myalgoSignedTransactions){
+
+              signedTransactions[indexesMatch[j]] = signedTx.blob;
+              j++;
+
+            }
+            //signedTransactions = signedTransactions.map(tx => tx.blob)
         } catch(err) {
             throw err;
         }
@@ -168,6 +193,8 @@ async signTransactions(transactions){
             txn: tx,
             signers: [algosdk.encodeAddress(tx.from.publicKey)]
         }))
+
+        console.log(transactionsToSign);
         
         try {
             signedTransactions = await this.wallet.signTransaction([transactionsToSign]);
