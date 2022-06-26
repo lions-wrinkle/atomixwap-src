@@ -169,21 +169,16 @@ export class SwapLinkManager {
   async signAndGetLink(baseURL) {
 
     let transactionsGroup = [];
-    let transactionsIndexes = {};
-
-    let i = 0;
 
     for (const txName in this.transactions){
 
       if (this.transactions[txName]){
         transactionsGroup.push(this.transactions[txName]);
-        transactionsIndexes[txName] = i;
-        i++;
       }
 
     }
 
-    const signedTransferTransaction = await this.walletConnect.signTransactions(
+    const signedTransactions = await this.walletConnect.signTransactions(
       transactionsGroup
     );
 
@@ -204,13 +199,13 @@ export class SwapLinkManager {
       price: price,
       currency: currency,
       signedTransferTx: SwapLinkManager.signedTxToBase64(
-        signedTransferTransaction[transactionsIndexes['assetTransfer']]
+        signedTransactions[0]
       ),
     };
 
     if (this.transactions.optinCurrency) {
       outputJson.signedOptinCurrencyTx = SwapLinkManager.signedTxToBase64(
-        signedTransferTransaction[transactionsIndexes['optinCurrency']]
+        signedTransactions[1]
       );
     }
 
@@ -239,23 +234,28 @@ export class SwapLinkManager {
   ) {
 
     let transactionsGroup = [];
-    let transactionsIndexes = {};
 
-    let i = 0;
     for (const txName in this.transactions){
 
       if (this.transactions[txName]){
         transactionsGroup.push(this.transactions[txName]);
-        transactionsIndexes[txName] = i;
-        i++;
       }
 
     }
 
-    const signedTransactions = await this.walletConnect.signTransactions(
-      transactionsGroup
-    );
+    let signedTransactions;
 
+    try {
+
+      signedTransactions = await this.walletConnect.signTransactions(
+        transactionsGroup
+      );
+
+    } catch (err) {
+      failedCallback(err);
+      return;
+    }
+  
     //call callback
     signedCallback();
 
@@ -264,26 +264,26 @@ export class SwapLinkManager {
     if (!this.transactions.optinCurrency) {
       //algo transaction
       finalSignedTransactions = [
-        signedTransactions[transactionsIndexes['optin']],
+        signedTransactions[0],
         signedTransferTransaction
       ];
 
       if (this.transactions.payment) {
-        finalSignedTransactions.push(signedTransactions[transactionsIndexes['payment']]);
+        finalSignedTransactions.push(signedTransactions[1]);
       }
 
     } else {
       //other currency transaction
       finalSignedTransactions = [
-        signedTransactions[transactionsIndexes['optin']],
+        signedTransactions[0],
         signedTransferTransaction,
         signedOptinCurrencyTransaction,
-        signedTransactions[transactionsIndexes['payment']],
+        signedTransactions[1],
       ];
     }
 
     if (this.transactions.royaltiesPayment) {
-      finalSignedTransactions.push(signedTransactions[transactionsIndexes['royaltiesPayment']]);
+      finalSignedTransactions.push(signedTransactions[2]);
     }
 
     //send to the network

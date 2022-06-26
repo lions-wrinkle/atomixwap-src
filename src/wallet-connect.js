@@ -4,7 +4,6 @@ import algosdk from "algosdk";
 
 export class WalletConnect {
   constructor(connectedCallback, disconnectedCallback) {
-    
     this.connectedCallback = connectedCallback;
     this.disconnectedCallback = disconnectedCallback;
 
@@ -16,7 +15,6 @@ export class WalletConnect {
 
     this.loadState();
     this.updateUI();
-
   }
 
   //UI
@@ -40,7 +38,9 @@ export class WalletConnect {
     this.ui
       .querySelector("#buttonMyAlgo")
       .addEventListener("click", this.connectMyAlgo.bind(this));
-    this.ui.querySelector("#buttonPera").addEventListener("click", this.connectPera.bind(this));
+    this.ui
+      .querySelector("#buttonPera")
+      .addEventListener("click", this.connectPera.bind(this));
   }
 
   displayConnectedUI() {
@@ -77,7 +77,7 @@ export class WalletConnect {
         }
 
         // Setup the disconnect event listener
-        this.wallet.connector?.on("disconnect", this.disconnect);
+        this.wallet.connector?.on("disconnect", this.disconnect.bind(this));
       });
     }
   }
@@ -98,114 +98,90 @@ export class WalletConnect {
 
   //Connect
 
-async connectMyAlgo(){
-
+  async connectMyAlgo() {
     this.wallet = new MyAlgoConnect();
-    const accountsSharedByUser = await this.wallet.connect({shouldSelectOneAccount: true, openManager: true});
+    const accountsSharedByUser = await this.wallet.connect({
+      shouldSelectOneAccount: true,
+      openManager: true,
+    });
 
-    if (accountsSharedByUser[0]){
-        this.walletType = 'myalgo';
-        this.walletAddress = accountsSharedByUser[0].address;
-        this.saveState();
-        this.updateUI();
+    if (accountsSharedByUser[0]) {
+      this.walletType = "myalgo";
+      this.walletAddress = accountsSharedByUser[0].address;
+      this.saveState();
+      this.updateUI();
 
-        this.connectedCallback();
+      this.connectedCallback();
     }
-    
-}
+  }
 
-async connectPera(){
+  async connectPera() {
+    this.wallet = new PeraWalletConnect();
 
-   this.wallet = new PeraWalletConnect();
-    
     const accountsSharedByUser = await this.wallet.connect();
 
-    if (accountsSharedByUser[0]){
-        this.walletType = 'pera';
-        this.walletAddress = accountsSharedByUser[0];
-        this.saveState();
-        this.updateUI();
+    if (accountsSharedByUser[0]) {
+      this.walletType = "pera";
+      this.walletAddress = accountsSharedByUser[0];
+      this.saveState();
+      this.updateUI();
 
-        this.connectedCallback();
+      this.connectedCallback();
     }
+  }
 
-}
-
- disconnect(){
-
-    if (this.walletType === 'pera'){
-        this.wallet.disconnect();
+  disconnect() {
+    if (this.walletType === "pera") {
+      this.wallet.disconnect();
     }
 
     this.clearState();
     this.updateUI();
 
     this.disconnectedCallback();
+  }
 
-}
+  //Sign
 
-//Sign
-
-async signTransactions(transactions){
-
+  async signTransactions(transactions) {
     let signedTransactions;
 
-    if (this.walletType === 'myalgo'){
+    if (this.walletType === "myalgo") {
+      const transactionsToSign = [];
 
-        const transactionsToSign = [];
-        let indexesMatch = {};
-
-        let i  = 0;
-        let j = 0;
-
-        for (const tx of transactions){
-
-          if (algosdk.encodeAddress(tx.from.publicKey) === this.walletAddress){
-            transactionsToSign.push(tx.toByte());
-            indexesMatch[j] = i;
-            j++;
-          }
-
-          i++;
+      for (const tx of transactions) {
+        if (algosdk.encodeAddress(tx.from.publicKey) === this.walletAddress) {
+          transactionsToSign.push(tx.toByte());
         }
+      }
 
-        signedTransactions = new Array(transactions.length);
-        
-        try {
-            const myalgoSignedTransactions = await this.wallet.signTransaction(transactionsToSign);
+      try {
+        signedTransactions = await this.wallet.signTransaction(
+          transactionsToSign
+        );
 
-            let j = 0;
-            for (const signedTx of myalgoSignedTransactions){
+        signedTransactions = signedTransactions.map((tx) => tx.blob);
+      } catch (err) {
+        throw err;
+      }
+    } else if (this.walletType === "pera") {
+      const transactionsToSign = transactions.map((tx) => ({
+        txn: tx,
+        signers: [algosdk.encodeAddress(tx.from.publicKey)],
+      }));
 
-              signedTransactions[indexesMatch[j]] = signedTx.blob;
-              j++;
-
-            }
-            //signedTransactions = signedTransactions.map(tx => tx.blob)
-        } catch(err) {
-            throw err;
-        }
-        
-        
-    } else if (this.walletType === 'pera'){
-
-        const transactionsToSign = transactions.map(tx => ({
-            txn: tx,
-            signers: [algosdk.encodeAddress(tx.from.publicKey)]
-        }))
-
-        console.log(transactionsToSign);
-        
-        try {
-            signedTransactions = await this.wallet.signTransaction([transactionsToSign]);
-        } catch(err) {
-            throw err;
-        }
-
+      try {
+        signedTransactions = await this.wallet.signTransaction(
+          [transactionsToSign],
+          this.walletAddress
+        );
+      } catch (err) {
+        throw err;
+      }
     } else {
-       throw new Error('No wallet connected');
+      throw new Error("No wallet connected");
     }
 
     return signedTransactions;
-}
+  }
 }

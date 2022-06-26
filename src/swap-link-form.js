@@ -201,8 +201,6 @@ export class SwapLinkForm {
 
   royaltiesChange(event) {
     const royaltiesSlider = this.ui.querySelector("#inputRoyalties");
-
-    console.log(royaltiesSlider.value)
     
     this.ui.querySelector(
       "#royaltiesValueLabel"
