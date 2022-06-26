@@ -43,6 +43,10 @@ if (network === "TESTNET"){
         {
             name: "DEGEN",
             assetId: "417708610"
+        },
+        {
+            name: "SHRIMP",
+            assetId: "360019122"
         }
         
     ];

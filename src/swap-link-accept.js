@@ -104,7 +104,14 @@ export class SwapLinkAccept {
         price = price / 1000000;
         currencyString = "ALGO";
       } else {
-        currencyString = `${this.swapLinkManager.currencyAsset.params["unit-name"]} (ASA ${this.swapLinkManager.currencyAsset.index})`;
+
+        let emoji = '';
+
+        if (this.swapLinkManager.currencyAsset.index === 360019122){
+            emoji = '&#127844; '
+        }
+
+        currencyString = `${this.swapLinkManager.currencyAsset.params["unit-name"]} ${emoji}(ASA ${this.swapLinkManager.currencyAsset.index})`;
       }
 
       priceLI = `<li>You'll send <span class="price">${price} ${currencyString}</span><br>

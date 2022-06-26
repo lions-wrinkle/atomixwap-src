@@ -181,10 +181,10 @@ export class SwapLinkForm {
 
       if (inputCurrency.value !== "algo"){
         royaltiesdHelp.textContent =
-        "Royalties not available for other cryptocurrencies than Algo";
+        "Royalty not available for other token than Algo";
       } else {
         royaltiesdHelp.textContent =
-            "You're the creator of this asset, royalties disabled.";
+            "You're the creator of this asset, royalty disabled.";
       }
       
       greenHeart.hidden = true;

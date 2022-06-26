@@ -35,8 +35,14 @@ export class SwapLinkConfirm {
                 price = price/1000000;
                 currencyString = "ALGO";
             } else {
+
+                let emoji = '';
+
+                if (this.swapLinkGenerator.currencyAsset.index === 360019122){
+                    emoji = '&#127844; '
+                }
                 
-                currencyString = `${this.swapLinkGenerator.currencyAsset.params["unit-name"]} (ASA ${this.swapLinkGenerator.currencyAsset.index})`;
+                currencyString = `${this.swapLinkGenerator.currencyAsset.params["unit-name"]} ${emoji}(ASA ${this.swapLinkGenerator.currencyAsset.index})`;
             }
         } else {
             price = 'nothing';
