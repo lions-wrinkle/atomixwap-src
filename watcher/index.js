@@ -47,7 +47,7 @@ backward.addEventListener('change', async (event) => {
 
   const result = await algodClient.status().do();
   round = result["last-round"];
-  round = 21862367;
+  //round = 21862367;
 
   liveRoundSpan.textContent = result["last-round"];
   currentRoundSpan.textContent = round;
