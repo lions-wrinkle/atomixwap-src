@@ -121,7 +121,7 @@ backward.addEventListener('change', async (event) => {
 
             <th scope="row"><a href="https://algoexplorer.io/tx/${tx.id}" target="_blank">${tx.id.substring(0, 10)}...</a></td>
             <td>${roundDate.toLocaleString()}</td>
-            <td><a href="https://algoexplorer.io/asset/${assetID}" target="_blank">${assetName}</a><br><small class="text-secondary">${assetID}</small></td>
+            <td><a href="https://www.nftexplorer.app/asset/${assetID}" target="_blank">${assetName}</a><br><small class="text-secondary">${assetID}</small></td>
             <td>${paymentsAlgo.join(', ')}</td>
             <td><a href="https://algoexplorer.io/tx/group/${encodeURIComponent(tx.group)}" target="_blank">${tx.group.substring(0, 10)}...</a></td>
             
