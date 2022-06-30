@@ -147,7 +147,7 @@ backward.addEventListener('change', async (event) => {
 
     } catch (err) {
       currentRoundSpan.textContent = "Broke";
-      alert(err);
+      //alert(err);
     }
   }
 
