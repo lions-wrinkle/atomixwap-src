@@ -65,10 +65,10 @@ const walletConnectDiv = document.getElementById("wallet-connect");
 const contentDiv = document.getElementById("content");
 
 //set network badge
-const networkBadge = document.getElementById("networkBadge");
+/*const networkBadge = document.getElementById("networkBadge");
 if (networkBadge){
     networkBadge.textContent = network.toLowerCase();
-}
+}*/
 
 
 //append wallet connect ui
