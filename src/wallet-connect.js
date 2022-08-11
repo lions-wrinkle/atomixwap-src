@@ -1,7 +1,6 @@
 import { encodeAddress } from "algosdk";
 
 export class WalletConnect {
-
   constructor(connectedCallback, disconnectedCallback, btnClass = "") {
     this.connectedCallback = connectedCallback;
     this.disconnectedCallback = disconnectedCallback;
@@ -15,7 +14,6 @@ export class WalletConnect {
     this.btnClass = btnClass;
 
     this.loadState().then(() => {
-
       if (this.walletType && this.walletAddress) {
         this.connectedCallback();
       } else {
@@ -67,18 +65,14 @@ export class WalletConnect {
 
   //State
   async loadState() {
-
     this.walletType = localStorage.getItem("wallet-connect-type");
     this.walletAddress = localStorage.getItem("wallet-connect-address");
 
     if (this.walletType === "myalgo" && this.walletAddress) {
-
-      const MyAlgoConnect = await import('@randlabs/myalgo-connect');
+      const MyAlgoConnect = await import("@randlabs/myalgo-connect");
       this.wallet = new MyAlgoConnect.default();
-
     } else if (this.walletType === "pera" && this.walletAddress) {
-
-      const { PeraWalletConnect } = await import('@perawallet/connect');
+      const { PeraWalletConnect } = await import("@perawallet/connect");
       this.wallet = new PeraWalletConnect();
 
       this.wallet.reconnectSession().then((accounts) => {
@@ -112,8 +106,7 @@ export class WalletConnect {
   //Connect
 
   async connectMyAlgo() {
-
-    const MyAlgoConnect = await import('@randlabs/myalgo-connect');
+    const MyAlgoConnect = await import("@randlabs/myalgo-connect");
 
     this.wallet = new MyAlgoConnect.default();
     const accountsSharedByUser = await this.wallet.connect({
@@ -132,16 +125,17 @@ export class WalletConnect {
   }
 
   async connectPera() {
-
-    const { PeraWalletConnect } = await import('@perawallet/connect');
+    const { PeraWalletConnect } = await import("@perawallet/connect");
 
     this.wallet = new PeraWalletConnect();
 
     this.wallet.connector?.killSession();
 
     await this.wallet.disconnect();
-    
-    const accountsSharedByUser = await this.wallet.connect();
+
+    try {
+
+      const accountsSharedByUser = await this.wallet.connect();
 
     if (accountsSharedByUser[0]) {
       this.walletType = "pera";
@@ -149,8 +143,22 @@ export class WalletConnect {
       this.saveState();
       this.updateUI();
 
+      // Setup the disconnect event listener
+      this.wallet.connector?.on("disconnect", this.disconnect.bind(this));
+
       this.connectedCallback();
     }
+
+    } catch (err) {
+
+      if (err?.data?.type !== "CONNECT_MODAL_CLOSED") {
+
+        alert(err.message);
+
+      }
+
+    }
+    
   }
 
   disconnect() {
@@ -190,7 +198,7 @@ export class WalletConnect {
     } else if (this.walletType === "pera") {
       const transactionsToSign = transactions.map((tx) => ({
         txn: tx,
-        signers: [encodeAddress(tx.from.publicKey)],
+        signers: encodeAddress(tx.from.publicKey) === this.walletAddress ? [this.walletAddress] : [],
       }));
 
       try {

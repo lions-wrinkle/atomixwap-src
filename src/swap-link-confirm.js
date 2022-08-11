@@ -66,9 +66,8 @@ export class SwapLinkConfirm {
         </div>
         
         <a href="" id="swapLink" style="word-break: break-all;"></a><br>
-        <span id="linkInfo" class="form-text mt-3" hidden>This link will expire in about 1h15.</span><br>
+        <span id="linkInfo" class="form-text mt-3" hidden>This link will expire in about 1h15. (<a href="https://developer.algorand.org/docs/get-details/transactions/#sending-a-transaction-in-the-future" target="_blank">Why?</a>)</span><br>
         <button class="btn btn-secondary" id="buttonCopy" hidden>copy</button>
-        <div id="sign-info" class="mb-3"></div>
         <button class="btn btn-generate" id="buttonSign">Sign</button>`;
 
         //add royalties if needed
@@ -112,7 +111,7 @@ export class SwapLinkConfirm {
         submitButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
         Waiting for signature...`;
 
-        if (this.walletConnect.walletType === 'pera'){
+        /*if (this.walletConnect.walletType === 'pera'){
             this.ui.querySelector('#sign-info').innerHTML = `
             <div class="alert alert-primary d-flex align-items-center" role="alert">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-phone" viewBox="0 0 16 16">
@@ -121,7 +120,7 @@ export class SwapLinkConfirm {
                 </svg>
                 Please open your Pera Algo Wallet app to sign.
             </div>`;
-        } 
+        } */
         
         
     
@@ -150,7 +149,7 @@ export class SwapLinkConfirm {
     displayLink(url){
 
         this.ui.querySelector("#buttonSign").hidden = true;
-        this.ui.querySelector('#sign-info').textContent = '';
+        //this.ui.querySelector('#sign-info').textContent = '';
         
         const swapLink = this.ui.querySelector("#swapLink");
         swapLink.href = url;

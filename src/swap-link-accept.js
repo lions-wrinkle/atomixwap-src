@@ -136,7 +136,7 @@ export class SwapLinkAccept {
                 <label class="form-check-label" for="checkAcceptRisk">I accept to use this tool at my own
                     risk</label>
             </div>
-            <div id="sign-info" class="mb-3"></div>
+            
             <button type="submit" class="btn btn-generate fw-bold" id="buttonAccept">Accept & sign</button>
         </form>`;
 
@@ -182,7 +182,7 @@ export class SwapLinkAccept {
     buttonAccept.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
     Waiting for signatures...`;
 
-    if (this.walletConnect.walletType === "pera") {
+    /*if (this.walletConnect.walletType === "pera") {
       this.ui.querySelector("#sign-info").innerHTML = `
       <div class="alert alert-primary d-flex align-items-center" role="alert">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-phone" viewBox="0 0 16 16">
@@ -191,14 +191,14 @@ export class SwapLinkAccept {
           </svg>
           Please open your Pera Algo Wallet app to sign.
       </div>`;
-    }
+    }*/
 
     this.swapLinkManager.signAndCommitTransactions(
       this.signedTxTransfer,
       this.signedOptinCurrencyTx,
       () => {
         //signed
-        this.ui.querySelector("#sign-info").textContent = '';
+        //this.ui.querySelector("#sign-info").textContent = '';
         buttonAccept.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
         Sending transactions...`;
       },
