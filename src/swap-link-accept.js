@@ -76,7 +76,14 @@ export class SwapLinkAccept {
   }
 
   async generateTransactions() {
-    await this.swapLinkManager.generateTransactions(this.fields);
+    
+    try {
+      await this.swapLinkManager.generateTransactions(this.fields);
+    } catch (err) {
+      this.ui.innerHTML = `<h4>Accept swap</h4>
+        <div class="alert alert-danger" role="alert">${err.message}</div>`;
+    }
+    
 
     this.displayUI();
   }

@@ -1,0 +1,128 @@
+:root{
+    --atomic-green: #7bd300;
+    --light-green: #7bd300;
+    --white: #e2d7a3;
+}
+
+body {
+    background-color: #322c1e;
+    color: var(--white);
+    
+}
+
+h4 {
+    color: var(--atomic-green);
+}
+
+a {
+    color: var(--white);
+}
+
+a:hover {
+    color: var(--atomic-green);
+}
+
+.wallet-info {
+    color: #705b42;
+    font-size: 0.8rem;
+    word-break: break-all;
+}
+
+.rounded-pill {
+    background-color: black;
+    color: var(--light-green);
+}
+
+.royalties {
+    color: var(--light-green);
+}
+
+.price {
+    font-weight: bolder;
+    color: var(--light-green);
+}
+
+h1 a {
+   text-decoration: none;
+   color: var(--white); 
+}
+
+h1 a:hover {
+    text-decoration: none;
+    color: var(--white); 
+
+    color: var(--atomic-green);
+    text-shadow: 0 0 10px var(--light-green);
+ }
+
+.page {
+    min-height: 100vh;
+}
+
+.round-box {
+    background-color: #241e0e;
+    border-radius: 1em;
+    padding: 1em;
+    margin-bottom: 1em;
+}
+
+.btn-myalgo {
+    background-color: #235fc6;
+    color: white;
+    margin-right: 1em;
+}
+
+.btn-pera {
+    background-color: #feef55;
+    color: black;
+}
+
+.btn-disconnect {
+    background-color: #362c21;
+    color: var(--white);
+}
+
+.btn-generate {
+
+    background-color: var(--atomic-green);
+    color:#f3ffe3;
+    box-shadow: 
+    inset 0 0 10px #67a800,
+    0 0 20px -3px #9dff00;
+
+}
+
+.heart {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+@keyframes animateHeart {
+    0% {
+      transform: translate(-50%, -50%) scale(1.0);
+    }
+    8% {
+      transform: translate(-50%, -50%) scale(1.05);
+    }
+    16% {
+      transform: translate(-50%, -50%) scale(1.0);
+    }
+    24% {
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+    50% {
+      transform: translate(-50%, -50%) scale(1.0);
+    }
+    100% {
+      transform: translate(-50%, -50%) scale(1.0);
+    }
+  }
+
+footer a {
+    color: var(--light-green);
+}
+
+footer a:hover {
+    color: var(--white);
+}

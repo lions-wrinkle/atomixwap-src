@@ -13,7 +13,7 @@ let algodURL;
 let algoIndexerURL;
 let currencies;
 
-if (network === "TESTNET"){
+if (network === "MAINNET"){
 
     algodURL = "https://node.testnet.algoexplorerapi.io";
     algoIndexerURL = "https://algoindexer.testnet.algoexplorerapi.io";

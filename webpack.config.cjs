@@ -1,4 +1,5 @@
 const path = require('path');
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 module.exports = {
   entry: './src/index.js',
@@ -6,6 +7,7 @@ module.exports = {
   output: {
     filename: 'main.js',
     path: path.resolve(__dirname, 'dist'),
+    clean: true,
   },
   resolve: {
     fallback: {
@@ -13,7 +15,15 @@ module.exports = {
       "stream": require.resolve("stream-browserify")
     }
     
-  }
+  },
+  plugins: [
+    new CopyWebpackPlugin({
+      patterns: [
+        { from: "./src/assets", to: "" },
+        { from: "./src/index.html", to: "index.html" },
+      ],
+    }),
+  ]
   
 };
 
