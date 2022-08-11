@@ -38,15 +38,21 @@
 
         <div style="max-width: 768px;">
             <h1 class="position-relative mb-0 pb-0 ms-2"><a href="/"><img src="title.png" width="320" height="auto" style="image-rendering: pixelated;"><span class="visually-hidden">Atomixwap</span></a>
+                <span class="fs-6 translate-middle-y badge rounded-pill" id="networkBadge" hidden></span>
                 <!--<span class="translate-middle-y badge rounded-pill" style="font-size: 1rem;">beta</span>
-                <span class="fs-6 translate-middle-y badge rounded-pill" id="networkBadge">Tesnet</span>-->
+                -->
             
             </h1>
             
             <div class="round-box" id="wallet-connect">
+                <h4 id="wallet-connect-title"></h4>
+                <div id="wallet-connect-content"></div>
             </div>
 
-            <div class="round-box" id="content">
+            <div class="round-box" id="content" hidden>
+            </div>
+
+            <div class="round-box" id="atomixwap-info">
                 Atomixwap let you trade NFTs for Algo or other predefined cryptocurrency on the Algorand Blockchain using <a href="https://developer.algorand.org/docs/get-details/atomic_transfers/">atomic tranfers.</a>
             </div>
 

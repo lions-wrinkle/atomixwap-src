@@ -1,9 +1,8 @@
-import MyAlgoConnect from "@randlabs/myalgo-connect";
-import { PeraWalletConnect } from "@perawallet/connect";
-import algosdk from "algosdk";
+import { encodeAddress } from "algosdk";
 
 export class WalletConnect {
-  constructor(connectedCallback, disconnectedCallback) {
+
+  constructor(connectedCallback, disconnectedCallback, btnClass = "") {
     this.connectedCallback = connectedCallback;
     this.disconnectedCallback = disconnectedCallback;
 
@@ -13,8 +12,18 @@ export class WalletConnect {
     this.walletType;
     this.walletAddress;
 
-    this.loadState();
-    this.updateUI();
+    this.btnClass = btnClass;
+
+    this.loadState().then(() => {
+
+      if (this.walletType && this.walletAddress) {
+        this.connectedCallback();
+      } else {
+        this.disconnectedCallback();
+      }
+
+      this.updateUI();
+    });
   }
 
   //UI
@@ -30,9 +39,8 @@ export class WalletConnect {
 
   displayConnectUI() {
     this.ui.innerHTML = `
-    <h4>Connect wallet</h4>
-    <button class="btn btn-myalgo" id="buttonMyAlgo">MyAlgo</button>
-    <button class="btn btn-pera" id="buttonPera">Pera</button>
+    <button class="btn-myalgo ${this.btnClass}" id="buttonMyAlgo">MyAlgo</button>
+    <button class="btn-pera ${this.btnClass}" id="buttonPera">Pera</button>
     `;
 
     this.ui
@@ -45,7 +53,6 @@ export class WalletConnect {
 
   displayConnectedUI() {
     this.ui.innerHTML = `
-    <h4>Connected wallet</h4>
     <span style="word-break: break-all;">${this.walletAddress}</span>
     <a href="#" id="buttonDisconnect"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-x-circle" viewBox="0 0 16 16">
     <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
@@ -59,13 +66,19 @@ export class WalletConnect {
   }
 
   //State
-  loadState() {
+  async loadState() {
+
     this.walletType = localStorage.getItem("wallet-connect-type");
     this.walletAddress = localStorage.getItem("wallet-connect-address");
 
     if (this.walletType === "myalgo" && this.walletAddress) {
-      this.wallet = new MyAlgoConnect();
+
+      const MyAlgoConnect = await import('@randlabs/myalgo-connect');
+      this.wallet = new MyAlgoConnect.default();
+
     } else if (this.walletType === "pera" && this.walletAddress) {
+
+      const { PeraWalletConnect } = await import('@perawallet/connect');
       this.wallet = new PeraWalletConnect();
 
       this.wallet.reconnectSession().then((accounts) => {
@@ -99,7 +112,10 @@ export class WalletConnect {
   //Connect
 
   async connectMyAlgo() {
-    this.wallet = new MyAlgoConnect();
+
+    const MyAlgoConnect = await import('@randlabs/myalgo-connect');
+
+    this.wallet = new MyAlgoConnect.default();
     const accountsSharedByUser = await this.wallet.connect({
       shouldSelectOneAccount: true,
       openManager: true,
@@ -116,8 +132,15 @@ export class WalletConnect {
   }
 
   async connectPera() {
+
+    const { PeraWalletConnect } = await import('@perawallet/connect');
+
     this.wallet = new PeraWalletConnect();
 
+    this.wallet.connector?.killSession();
+
+    await this.wallet.disconnect();
+    
     const accountsSharedByUser = await this.wallet.connect();
 
     if (accountsSharedByUser[0]) {
@@ -150,7 +173,7 @@ export class WalletConnect {
       const transactionsToSign = [];
 
       for (const tx of transactions) {
-        if (algosdk.encodeAddress(tx.from.publicKey) === this.walletAddress) {
+        if (encodeAddress(tx.from.publicKey) === this.walletAddress) {
           transactionsToSign.push(tx.toByte());
         }
       }
@@ -167,7 +190,7 @@ export class WalletConnect {
     } else if (this.walletType === "pera") {
       const transactionsToSign = transactions.map((tx) => ({
         txn: tx,
-        signers: [algosdk.encodeAddress(tx.from.publicKey)],
+        signers: [encodeAddress(tx.from.publicKey)],
       }));
 
       try {

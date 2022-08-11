@@ -60,23 +60,25 @@ if (network === "TESTNET"){
 const baseURL = "https://atomixwap.xyz/";
 const defaultRoyalties = 5.0;
 
-
 const algodClient = new algosdk.Algodv2("", algodURL, '');
 const algoIndexer = new algosdk.Indexer("",algoIndexerURL,"443",{ "User-Agent": "XXX" });
 
 const title = document.getElementById("content-title");
-const walletConnectDiv = document.getElementById("wallet-connect");
+const walletConnectTitle = document.getElementById("wallet-connect-title");
+const walletConnectDiv = document.getElementById("wallet-connect-content");
 const contentDiv = document.getElementById("content");
+const infoDiv = document.getElementById("atomixwap-info");
 
-//set network badge
-/*const networkBadge = document.getElementById("networkBadge");
-if (networkBadge){
+//set network badge (testnet only)
+const networkBadge = document.getElementById("networkBadge");
+if (networkBadge && network !== "MAINNET"){
+    networkBadge.hidden = false;
     networkBadge.textContent = network.toLowerCase();
-}*/
+}
 
 
 //append wallet connect ui
-const walletConnect = new WalletConnect(connected, disconnected);
+const walletConnect = new WalletConnect(connected, disconnected, 'btn');
 walletConnectDiv.append(walletConnect.ui);
 
 //retreive URL parameters
@@ -88,6 +90,9 @@ if (walletConnect.walletAddress){
 }
 
 function connected(){
+
+    walletConnectTitle.textContent = "Connected wallet";
+    infoDiv.hidden = true;
 
     contentDiv.hidden = false;
     contentDiv.textContent = '';
@@ -115,6 +120,9 @@ function connected(){
 }
 
 function disconnected(){
+
+    walletConnectTitle.textContent = "Connect wallet";
+    infoDiv.hidden = false;
 
     contentDiv.hidden = true;
     contentDiv.textContent = '';
