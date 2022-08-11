@@ -7,7 +7,7 @@ import { SwapLinkConfirm } from './swap-link-confirm';
 import algosdk, { makeApplicationClearStateTxn } from "algosdk";
 import { SwapLinkAccept } from './swap-link-accept';
 
-const network = "MAINNET"
+const network = "TESTNET"
 
 let algodURL;
 let algoIndexerURL;
@@ -47,6 +47,10 @@ if (network === "TESTNET"){
         {
             name: "SHRIMP",
             assetId: "360019122"
+        },
+        {
+            name: "ALCH",
+            assetId: "310014962"
         }
         
     ];
