@@ -6,6 +6,7 @@ export class SwapLinkManager {
     this.algodClient = algodClient;
     this.algoIndexer = algoIndexer;
     this.transactions;
+    this.transactionsOrder;
     this.asset;
     this.currencyAsset;
   }
@@ -27,6 +28,7 @@ export class SwapLinkManager {
   }
 
   async generateTransactions(fields) {
+
     //load asset
     const result = await this.algoIndexer.lookupAssetByID(fields.assetId).do();
     this.asset = result.asset;
@@ -42,6 +44,7 @@ export class SwapLinkManager {
     let params = await this.algodClient.getTransactionParams().do();
 
     this.transactions = {};
+    this.transactionsOrder = [];
 
     //optin transaction
     this.transactions.optin =
@@ -52,6 +55,7 @@ export class SwapLinkManager {
         assetIndex: fields.assetId,
         amount: 0,
       });
+      this.transactionsOrder.push('optin');
 
     //asset transfer transaction
     const enc = new TextEncoder();
@@ -66,6 +70,7 @@ export class SwapLinkManager {
         amount: 1,
         note: note,
       });
+      this.transactionsOrder.push('assetTransfer');
 
     //payment transaction
     if (fields.price > 0) {
@@ -89,6 +94,7 @@ export class SwapLinkManager {
             to: fields.sellerAddress,
             amount: microAlgosPrice,
           });
+          this.transactionsOrder.push('payment');
       } else {
         const currencyAssetId = parseInt(fields.currency);
 
@@ -100,6 +106,7 @@ export class SwapLinkManager {
             assetIndex: currencyAssetId,
             amount: Math.round(fields.price),
           });
+          this.transactionsOrder.push('payment');
 
         this.transactions.optinCurrency =
           algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
@@ -109,6 +116,7 @@ export class SwapLinkManager {
             assetIndex: currencyAssetId,
             amount: 0,
           });
+          this.transactionsOrder.push('optinCurrency');
       }
     }
 
@@ -130,11 +138,16 @@ export class SwapLinkManager {
           to: creatorAddress,
           amount: microAlgosRoyalties,
         });
+        this.transactionsOrder.push('royaltiesPayment');
     }
 
     let transactionsArray = [];
 
-    transactionsArray.push(this.transactions.optin);
+    for(const txName of this.transactionsOrder){
+      transactionsArray.push(this.transactions[txName]);
+    }
+
+    /*transactionsArray.push(this.transactions.optin);
     transactionsArray.push(this.transactions.assetTransfer);
 
     if (this.transactions.optinCurrency) {
@@ -147,14 +160,14 @@ export class SwapLinkManager {
 
     if (this.transactions.royaltiesPayment) {
       transactionsArray.push(this.transactions.royaltiesPayment);
-    }
+    }*/
 
-    if (fields.groupID) {
+    /*if (fields.groupID) {
       transactionsArray.map((tx) => (tx.group = fields.groupID));
     } else {
       //assign group id if not provided in fields
       const txGroup = algosdk.assignGroupID(transactionsArray);
-    }
+    }*/
 
     if (fields.firstRound) {
       transactionsArray.map((tx) => (tx.firstRound = fields.firstRound));
@@ -163,6 +176,8 @@ export class SwapLinkManager {
     if (fields.lastRound) {
       transactionsArray.map((tx) => (tx.lastRound = fields.lastRound));
     }
+
+    algosdk.assignGroupID(transactionsArray);
   }
 
   //seller
@@ -170,7 +185,7 @@ export class SwapLinkManager {
 
     let transactionsGroup = [];
 
-    for (const txName in this.transactions){
+    for (const txName of this.transactionsOrder){
 
       if (this.transactions[txName]){
         transactionsGroup.push(this.transactions[txName]);
@@ -181,6 +196,35 @@ export class SwapLinkManager {
     const signedTransactions = await this.walletConnect.signTransactions(
       transactionsGroup
     );
+
+    //TODO: retreive signed transaction in good order using this.transactionsOrder
+    let namedSignedTransactions = {};
+
+    let signedTransactionsDecoded = [];
+
+    for (const signedTx of signedTransactions){
+      if (signedTx){
+        signedTransactionsDecoded.push(algosdk.decodeSignedTransaction(signedTx));
+      }
+    }
+
+    for (const txName of this.transactionsOrder){
+
+      const txId = this.transactions[txName].txID();
+
+      let i = 0;
+      for (const signedTx of signedTransactionsDecoded){
+
+        if (signedTx.txn.txID() === txId){
+          namedSignedTransactions[txName] = signedTransactions[i];
+          break;
+        }
+        i++;
+      }
+
+    }
+
+
 
     let currency = "algo";
     let price = 0;
@@ -199,13 +243,13 @@ export class SwapLinkManager {
       price: price,
       currency: currency,
       signedTransferTx: SwapLinkManager.signedTxToBase64(
-        signedTransactions[0]
+        namedSignedTransactions['assetTransfer']
       ),
     };
 
     if (this.transactions.optinCurrency) {
       outputJson.signedOptinCurrencyTx = SwapLinkManager.signedTxToBase64(
-        signedTransactions[1]
+        namedSignedTransactions['optinCurrency']
       );
     }
 
@@ -235,7 +279,7 @@ export class SwapLinkManager {
 
     let transactionsGroup = [];
 
-    for (const txName in this.transactions){
+    for (const txName of this.transactionsOrder){
 
       if (this.transactions[txName]){
         transactionsGroup.push(this.transactions[txName]);
@@ -255,11 +299,43 @@ export class SwapLinkManager {
       failedCallback(err);
       return;
     }
+
   
     //call callback
     signedCallback();
 
-    let finalSignedTransactions;
+    let allSignedTransactions = [...signedTransactions, signedTransferTransaction, signedOptinCurrencyTransaction];
+
+    let allSignedTransactionsDecoded = [];
+
+    for (const signedTx of allSignedTransactions){
+      if (signedTx){
+        allSignedTransactionsDecoded.push(algosdk.decodeSignedTransaction(signedTx));
+      }
+    }
+
+
+    let finalSignedTransactions = [];
+
+    for (const txName of this.transactionsOrder){
+
+      const txId = this.transactions[txName].txID();
+
+      let i = 0;
+      for (const signedTx of allSignedTransactionsDecoded){
+
+        if (signedTx.txn.txID() === txId){
+          finalSignedTransactions.push(allSignedTransactions[i]);
+          break;
+        }
+        i++;
+      }
+
+    }
+
+
+
+    /*let finalSignedTransactions;
 
     if (!this.transactions.optinCurrency) {
       //algo transaction
@@ -284,7 +360,7 @@ export class SwapLinkManager {
 
     if (this.transactions.royaltiesPayment) {
       finalSignedTransactions.push(signedTransactions[2]);
-    }
+    }*/
 
     //send to the network
     // Submit the transaction

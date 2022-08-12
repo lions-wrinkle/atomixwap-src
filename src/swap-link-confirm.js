@@ -138,6 +138,8 @@ export class SwapLinkConfirm {
 
         } catch (err){
 
+            console.error(err);
+
             submitButton.disabled = false;
             submitButton.innerHTML = 'Sign';
 

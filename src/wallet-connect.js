@@ -180,11 +180,13 @@ export class WalletConnect {
     if (this.walletType === "myalgo") {
       const transactionsToSign = [];
 
+
       for (const tx of transactions) {
         if (encodeAddress(tx.from.publicKey) === this.walletAddress) {
           transactionsToSign.push(tx.toByte());
         }
       }
+
 
       try {
         signedTransactions = await this.wallet.signTransaction(
@@ -195,16 +197,18 @@ export class WalletConnect {
       } catch (err) {
         throw err;
       }
-    } else if (this.walletType === "pera") {
+    } else if (this.walletType === "pera") {``
+
       const transactionsToSign = transactions.map((tx) => ({
         txn: tx,
-        signers: encodeAddress(tx.from.publicKey) === this.walletAddress ? [this.walletAddress] : [],
+        signers: [encodeAddress(tx.from.publicKey)],
       }));
+
+      
 
       try {
         signedTransactions = await this.wallet.signTransaction(
-          [transactionsToSign],
-          this.walletAddress
+          [transactionsToSign]
         );
       } catch (err) {
         throw err;

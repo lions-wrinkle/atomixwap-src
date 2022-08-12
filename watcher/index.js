@@ -20,6 +20,10 @@ const currencies = [
   {
       name: "SHRIMP",
       assetId: 360019122
+  },
+  {
+    name: "ALCH",
+    assetId: "310014962"
   }
   
 ];
