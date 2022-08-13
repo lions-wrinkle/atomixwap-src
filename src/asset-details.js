@@ -1,8 +1,8 @@
-
+import config from "./config.js";
 
 export async function loadAssetImage(assetId, imgElement, imgSize=200){
 
-    let url = `https://mainnet.api.perawallet.app/v1/assets/${assetId}`;
+    let url = `${config.urls[config.network].peraApiUrl}/assets/${assetId}`;
 
     try {
 

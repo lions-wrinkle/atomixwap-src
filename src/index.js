@@ -1,22 +1,20 @@
 import 'bootstrap'
 import './wallet-connect'
 import { WalletConnect } from './wallet-connect';
-import { SwapLinkForm } from './swap-link-form';
 import { SwapLinkManager } from './swap-link-manager';
 import { SwapLinkConfirm } from './swap-link-confirm';
-import algosdk, { makeApplicationClearStateTxn } from "algosdk";
-import { SwapLinkAccept } from './swap-link-accept';
+import algosdk from "algosdk";
+import config from './config.js';
 
-const network = "MAINNET"
 
-let algodURL;
-let algoIndexerURL;
+const algodURL = config.urls[config.network].algodUrl;
+const algoIndexerURL = config.urls[config.network].algoIndexerUrlTesnet;
 let currencies;
 
-if (network === "TESTNET"){
+console.log(algodURL);
+console.log(algoIndexerURL);
 
-    algodURL = "https://node.testnet.algoexplorerapi.io";
-    algoIndexerURL = "https://algoindexer.testnet.algoexplorerapi.io";
+if (config.network === "testnet"){
 
     currencies = [
         {
@@ -30,10 +28,7 @@ if (network === "TESTNET"){
     
     ];
 
-} else if (network === "MAINNET"){
-
-    algodURL = "https://node.algoexplorerapi.io";
-    algoIndexerURL = "https://algoindexer.algoexplorerapi.io";
+} else if (config.network === "mainnet"){
 
     currencies = [
         {
@@ -71,9 +66,9 @@ const infoDiv = document.getElementById("atomixwap-info");
 
 //set network badge (testnet only)
 const networkBadge = document.getElementById("networkBadge");
-if (networkBadge && network !== "MAINNET"){
+if (networkBadge && config.network !== "mainnet"){
     networkBadge.hidden = false;
-    networkBadge.textContent = network.toLowerCase();
+    networkBadge.textContent = config.network.toLowerCase();
 }
 
 
@@ -85,11 +80,11 @@ walletConnectDiv.append(walletConnect.ui);
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
 
-if (walletConnect.walletAddress){
+/*if (walletConnect.walletAddress){
     connected();
-}
+}*/
 
-function connected(){
+async function connected(){
 
     walletConnectTitle.textContent = "Connected wallet";
     infoDiv.hidden = true;
@@ -101,18 +96,30 @@ function connected(){
 
         //display accept swap
         try {
-            const swapLinkAccept = new SwapLinkAccept(urlParams.get('swap'), walletConnect, algodClient, algoIndexer)
+
+            const swapLinkModule = await import('./swap-link-accept');
+            const swapLinkAccept = new swapLinkModule.SwapLinkAccept(urlParams.get('swap'), walletConnect, algodClient, algoIndexer)
             contentDiv.append(swapLinkAccept.ui);
+
         } catch (err) {
             alert(err);
         }
-        
+    
+    } else if (urlParams.has('claim')){
+
+        console.log("CLAIM!")
+
+        //display claim page
+        const claimModule = await import('./claim.js');
+        const claim = new claimModule.Claim(walletConnect, algodClient);
+
+        contentDiv.append(claim.ui);
     
     } else {
     
         //display form
-        const swapLinkForm = new SwapLinkForm(currencies, defaultRoyalties, submitForm, walletConnect, algoIndexer);
-        //swapLinkForm.submitCallback = submitForm;
+        const swapLinkFormModule = await import('./swap-link-form');
+        const swapLinkForm = new swapLinkFormModule.SwapLinkForm(currencies, defaultRoyalties, submitForm, walletConnect, algoIndexer);
         contentDiv.append(swapLinkForm.ui);
     
     }
