@@ -118,6 +118,13 @@ h1 a:hover {
     transform: translate(-50%, -50%);
 }
 
+.opted-in {
+    font-weight: bolder;
+    font-size: 0.8rem;
+    color: var(--atomic-green);
+    
+}
+
 @keyframes animateHeart {
     0% {
       transform: translate(-50%, -50%) scale(1.0);

@@ -1,1 +1,1 @@
-(self.webpackChunkatomic_swap=self.webpackChunkatomic_swap||[]).push([[563],{6563:()=>{}}]);
+(self.webpackChunkatomixwap=self.webpackChunkatomixwap||[]).push([[563],{6563:()=>{}}]);

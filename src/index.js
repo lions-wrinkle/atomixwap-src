@@ -8,11 +8,8 @@ import config from './config.js';
 
 
 const algodURL = config.urls[config.network].algodUrl;
-const algoIndexerURL = config.urls[config.network].algoIndexerUrlTesnet;
+const algoIndexerURL = config.urls[config.network].algoIndexerUrl;
 let currencies;
-
-console.log(algodURL);
-console.log(algoIndexerURL);
 
 if (config.network === "testnet"){
 
@@ -105,9 +102,15 @@ async function connected(){
             alert(err);
         }
     
-    } else if (urlParams.has('claim')){
+    } else if (urlParams.get('optin')){
 
-        console.log("CLAIM!")
+        //display optin page
+        const optinModule = await import('./optin.js');
+        const optin = new optinModule.OptIn(walletConnect, algodClient, urlParams.get('optin'));
+
+        contentDiv.append(optin.ui);
+        
+    } else if (urlParams.has('claim')){
 
         //display claim page
         const claimModule = await import('./claim.js');

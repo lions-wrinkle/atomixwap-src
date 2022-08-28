@@ -45,7 +45,7 @@ export default class ClaimApiWrapper {
 
   getClaimablesUI() {
 
-    const maxTx = 2;
+    const maxTx = 8;
 
     let txCount = 0;
     let assetIds = [];
