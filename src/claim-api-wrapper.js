@@ -4,7 +4,6 @@ import { loadAssetImage } from "./asset-details.js";
 
 export default class ClaimApiWrapper {
   constructor(walletConnect, algodClient) {
-
     this.API_URL = config.urls[config.network].claimApiUrl;
 
     this.walletConnect = walletConnect;
@@ -16,35 +15,26 @@ export default class ClaimApiWrapper {
   }
 
   async load() {
-    try {
-      const response = await fetch(
-        this.API_URL +
-          "/claim/get?recipient=" +
-          this.walletConnect.walletAddress
-      );
+    const response = await fetch(
+      this.API_URL + "/claim/get?recipient=" + this.walletConnect.walletAddress
+    );
 
-      const data = await response.json();
+    const data = await response.json();
 
-      this.claimables = data.claimables;
-      this.suggestedParams = data.suggestedParams;
-      this.escrowAddress = data.escrowAddress;
+    this.claimables = data.claimables;
+    this.suggestedParams = data.suggestedParams;
+    this.escrowAddress = data.escrowAddress;
 
-      //load assets details
-      for (const claimable of this.claimables) {
-        const result = await this.algodClient
-          .getAssetByID(claimable.assetId)
-          .do();
-        claimable.params = result.params;
-      }
-    } catch (err) {
-      console.error(err);
-      alert(err.message);
-      return;
+    //load assets details
+    for (const claimable of this.claimables) {
+      const result = await this.algodClient
+        .getAssetByID(claimable.assetId)
+        .do();
+      claimable.params = result.params;
     }
   }
 
   getClaimablesUI() {
-
     const maxTx = 8;
 
     let txCount = 0;
@@ -58,9 +48,7 @@ export default class ClaimApiWrapper {
     let batchRow;
 
     for (const claimable of this.claimables) {
-
-      if (txCount === 0){
-
+      if (txCount === 0) {
         batchDiv = document.createElement("div");
         batchDiv.className = "mt-4 mb-1";
         contentDiv.append(batchDiv);
@@ -68,7 +56,6 @@ export default class ClaimApiWrapper {
         batchRow = batchRow = document.createElement("div");
         batchRow.className = "row text-center gx-2 gy-2 mb-3";
         batchDiv.append(batchRow);
-
       }
 
       const col = document.createElement("div");
@@ -76,7 +63,11 @@ export default class ClaimApiWrapper {
       col.innerHTML = `<div class="h-100 nft-card"><img src="default.png" class="img-fluid" id="nft-${claimable.assetId}"><div class="nft-card-info"><strong>${claimable.params.name}</strong><br>
       <small><a href="https://www.nftexplorer.app/asset/${claimable.assetId}" target="_blank">${claimable.assetId}</a></small></div></div>`;
 
-      loadAssetImage(claimable.assetId, col.querySelector(`#nft-${claimable.assetId}`), 400);
+      loadAssetImage(
+        claimable.assetId,
+        col.querySelector(`#nft-${claimable.assetId}`),
+        400
+      );
 
       assetIds.push(claimable.assetId);
 
@@ -85,7 +76,6 @@ export default class ClaimApiWrapper {
       txCount++;
 
       if (i === this.claimables.length - 1 || txCount === maxTx) {
-
         const button = document.createElement("button");
         button.className = "btn btn-generate";
 
@@ -97,8 +87,6 @@ export default class ClaimApiWrapper {
 
         txCount = 0;
         assetIds = [];
-        
-        
       }
 
       i++;
@@ -108,11 +96,9 @@ export default class ClaimApiWrapper {
   }
 
   async claim(event) {
-
     const callingButton = event.currentTarget;
 
     try {
-
       callingButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
       Waiting for signatures...`;
       callingButton.disabled = true;
@@ -123,15 +109,15 @@ export default class ClaimApiWrapper {
       let transferTxns = [];
 
       for (const assetId of assetIds) {
-
         //prepare optin txn
-        let optinTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-          from: this.walletConnect.walletAddress,
-          to: this.walletConnect.walletAddress,
-          amount: 0,
-          assetIndex: parseInt(assetId),
-          suggestedParams: this.suggestedParams,
-        });
+        let optinTxn =
+          algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+            from: this.walletConnect.walletAddress,
+            to: this.walletConnect.walletAddress,
+            amount: 0,
+            assetIndex: parseInt(assetId),
+            suggestedParams: this.suggestedParams,
+          });
 
         optinTxns.push(optinTxn);
 
@@ -171,8 +157,7 @@ export default class ClaimApiWrapper {
         },
       });
 
-      if (response.status === 200){
-
+      if (response.status === 200) {
         const data = await response.json();
 
         callingButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-check-circle-fill" viewBox="0 0 16 16">
@@ -180,26 +165,17 @@ export default class ClaimApiWrapper {
       </svg>
         Claimed`;
         callingButton.disabled = true;
-
       } else {
-
         const data = await response.json();
 
-        throw(new Error(data.error));
-
+        throw new Error(data.error);
       }
-      
-
     } catch (err) {
-
       console.error(err);
       alert(err.message);
 
       callingButton.textContent = "Claim";
       callingButton.disabled = false;
-
     }
   }
-
-    
 }

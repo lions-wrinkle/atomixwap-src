@@ -2,7 +2,7 @@
 
 const config = {
 
-    network: 'testnet',
+    network: 'mainnet',
 
     urls: {
         mainnet: {

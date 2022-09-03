@@ -58,7 +58,7 @@ export class SwapLinkAccept {
 
     if (lastRound >= this.fields.lastRound) {
       this.ui.innerHTML = `<h4>Accept swap</h4>
-        <div class="alert alert-danger" role="alert">This link expired.`;
+        <div class="alert alert-danger" role="alert">This link expired.</div>`;
     } else if (this.fields.buyerAddress !== this.walletConnect.walletAddress) {
       this.ui.innerHTML = `<h4>Accept swap</h4>
         <div class="alert alert-warning" role="alert">This swap can only be accepted by the following wallet:<br><span style="word-break: break-all;">${this.fields.buyerAddress}</span></div>`;
