@@ -108,6 +108,7 @@ export class WalletConnect {
   }
 
   clearState() {
+    this.nfd = null;
     this.wallet = null;
     this.walletType = null;
     this.walletAddress = null;

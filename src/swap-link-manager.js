@@ -7,7 +7,7 @@ export class SwapLinkManager {
     this.algoIndexer = algoIndexer;
     this.transactions;
     this.transactionsOrder;
-    this.asset;
+    this.assets;
     this.currencyAsset;
   }
 
@@ -28,10 +28,13 @@ export class SwapLinkManager {
   }
 
   async generateTransactions(fields) {
+    //load assets
+    this.assets = [];
 
-    //load asset
-    const result = await this.algoIndexer.lookupAssetByID(fields.assetId).do();
-    this.asset = result.asset;
+    for (const assetId of fields.assetIds) {
+      const result = await this.algoIndexer.lookupAssetByID(assetId).do();
+      this.assets.push(result.asset);
+    }
 
     //load currency asset
     if (fields.currency !== "algo") {
@@ -47,30 +50,42 @@ export class SwapLinkManager {
     this.transactionsOrder = [];
 
     //optin transaction
-    this.transactions.optin =
-      algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-        suggestedParams: { ...params },
-        from: fields.buyerAddress,
-        to: fields.buyerAddress,
-        assetIndex: fields.assetId,
-        amount: 0,
-      });
-      this.transactionsOrder.push('optin');
+    this.transactions.optins = [];
+
+    for (const assetId of fields.assetIds) {
+      this.transactions.optins.push(
+        algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+          suggestedParams: { ...params },
+          from: fields.buyerAddress,
+          to: fields.buyerAddress,
+          assetIndex: assetId,
+          amount: 0,
+        })
+      );
+    }
+
+    this.transactionsOrder.push("optins");
 
     //asset transfer transaction
     const enc = new TextEncoder();
     const note = enc.encode("atomixwap");
 
-    this.transactions.assetTransfer =
-      algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-        suggestedParams: { ...params },
-        from: fields.sellerAddress,
-        to: fields.buyerAddress,
-        assetIndex: fields.assetId,
-        amount: 1,
-        note: note,
-      });
-      this.transactionsOrder.push('assetTransfer');
+    this.transactions.assetTransfers = [];
+
+    for (const assetId of fields.assetIds) {
+      this.transactions.assetTransfers.push(
+        algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+          suggestedParams: { ...params },
+          from: fields.sellerAddress,
+          to: fields.buyerAddress,
+          assetIndex: assetId,
+          amount: 1,
+          note: note,
+        })
+      );
+    }
+
+    this.transactionsOrder.push("assetTransfers");
 
     //payment transaction
     if (fields.price > 0) {
@@ -94,7 +109,7 @@ export class SwapLinkManager {
             to: fields.sellerAddress,
             amount: microAlgosPrice,
           });
-          this.transactionsOrder.push('payment');
+        this.transactionsOrder.push("payment");
       } else {
         const currencyAssetId = parseInt(fields.currency);
 
@@ -106,7 +121,7 @@ export class SwapLinkManager {
             assetIndex: currencyAssetId,
             amount: Math.round(fields.price),
           });
-          this.transactionsOrder.push('payment');
+        this.transactionsOrder.push("payment");
 
         this.transactions.optinCurrency =
           algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
@@ -116,7 +131,7 @@ export class SwapLinkManager {
             assetIndex: currencyAssetId,
             amount: 0,
           });
-          this.transactionsOrder.push('optinCurrency');
+        this.transactionsOrder.push("optinCurrency");
       }
     }
 
@@ -127,7 +142,7 @@ export class SwapLinkManager {
       fields.royalties > 0 &&
       fields.currency === "algo"
     ) {
-      const creatorAddress = this.asset.params.creator;
+      const creatorAddress = this.assets[0].params.creator;
 
       const microAlgosRoyalties = Math.round(fields.royalties * 1000000);
 
@@ -138,13 +153,17 @@ export class SwapLinkManager {
           to: creatorAddress,
           amount: microAlgosRoyalties,
         });
-        this.transactionsOrder.push('royaltiesPayment');
+      this.transactionsOrder.push("royaltiesPayment");
     }
 
     let transactionsArray = [];
 
-    for(const txName of this.transactionsOrder){
-      transactionsArray.push(this.transactions[txName]);
+    for (const txName of this.transactionsOrder) {
+      if (Array.isArray(this.transactions[txName])) {
+        transactionsArray = transactionsArray.concat(this.transactions[txName]);
+      } else {
+        transactionsArray.push(this.transactions[txName]);
+      }
     }
 
     /*transactionsArray.push(this.transactions.optin);
@@ -178,19 +197,24 @@ export class SwapLinkManager {
     }
 
     algosdk.assignGroupID(transactionsArray);
+
+    console.log(transactionsArray);
   }
 
   //seller
   async signAndGetLink(baseURL) {
-
     let transactionsGroup = [];
 
-    for (const txName of this.transactionsOrder){
-
-      if (this.transactions[txName]){
-        transactionsGroup.push(this.transactions[txName]);
+    for (const txName of this.transactionsOrder) {
+      if (this.transactions[txName]) {
+        if (Array.isArray(this.transactions[txName])) {
+          transactionsGroup = transactionsGroup.concat(
+            this.transactions[txName]
+          );
+        } else {
+          transactionsGroup.push(this.transactions[txName]);
+        }
       }
-
     }
 
     const signedTransactions = await this.walletConnect.signTransactions(
@@ -202,29 +226,45 @@ export class SwapLinkManager {
 
     let signedTransactionsDecoded = [];
 
-    for (const signedTx of signedTransactions){
-      if (signedTx){
-        signedTransactionsDecoded.push(algosdk.decodeSignedTransaction(signedTx));
+    for (const signedTx of signedTransactions) {
+      if (signedTx) {
+        signedTransactionsDecoded.push(
+          algosdk.decodeSignedTransaction(signedTx)
+        );
       }
     }
 
-    for (const txName of this.transactionsOrder){
+    for (const txName of this.transactionsOrder) {
+      if (Array.isArray(this.transactions[txName])) {
+        for (const tx of this.transactions[txName]) {
+          if (!namedSignedTransactions[txName]) {
+            namedSignedTransactions[txName] = [];
+          }
 
-      const txId = this.transactions[txName].txID();
+          const txId = tx.txID();
 
-      let i = 0;
-      for (const signedTx of signedTransactionsDecoded){
-
-        if (signedTx.txn.txID() === txId){
-          namedSignedTransactions[txName] = signedTransactions[i];
-          break;
+          let i = 0;
+          for (const signedTx of signedTransactionsDecoded) {
+            if (signedTx.txn.txID() === txId) {
+              namedSignedTransactions[txName].push(signedTransactions[i]);
+              break;
+            }
+            i++;
+          }
         }
-        i++;
+      } else {
+        const txId = this.transactions[txName].txID();
+
+        let i = 0;
+        for (const signedTx of signedTransactionsDecoded) {
+          if (signedTx.txn.txID() === txId) {
+            namedSignedTransactions[txName] = signedTransactions[i];
+            break;
+          }
+          i++;
+        }
       }
-
     }
-
-
 
     let currency = "algo";
     let price = 0;
@@ -239,17 +279,22 @@ export class SwapLinkManager {
       }
     }
 
+    console.log("TRANSACTIONS");
+    console.log(this.transactions);
+    console.log("SIGNED TRANSACTIONS");
+    console.log(namedSignedTransactions);
+
     let outputJson = {
       price: price,
       currency: currency,
-      signedTransferTx: SwapLinkManager.signedTxToBase64(
-        namedSignedTransactions['assetTransfer']
+      signedTransferTxs: namedSignedTransactions["assetTransfers"].map((tx) =>
+        SwapLinkManager.signedTxToBase64(tx)
       ),
     };
 
     if (this.transactions.optinCurrency) {
       outputJson.signedOptinCurrencyTx = SwapLinkManager.signedTxToBase64(
-        namedSignedTransactions['optinCurrency']
+        namedSignedTransactions["optinCurrency"]
       );
     }
 
@@ -262,6 +307,9 @@ export class SwapLinkManager {
         1000000;
     }
 
+    console.log("JSON");
+    console.log(outputJson);
+
     const jsonStr = JSON.stringify(outputJson);
     const base64Str = btoa(jsonStr);
 
@@ -270,70 +318,83 @@ export class SwapLinkManager {
 
   //buyer
   async signAndCommitTransactions(
-    signedTransferTransaction,
+    signedTransferTransactions,
     signedOptinCurrencyTransaction,
     signedCallback,
     successCallback,
     failedCallback
   ) {
-
     let transactionsGroup = [];
 
-    for (const txName of this.transactionsOrder){
-
-      if (this.transactions[txName]){
+    for (const txName of this.transactionsOrder) {
+      if (Array.isArray(this.transactions[txName])) {
+        transactionsGroup = transactionsGroup.concat(this.transactions[txName]);
+      } else if (this.transactions[txName]) {
         transactionsGroup.push(this.transactions[txName]);
       }
-
     }
 
     let signedTransactions;
 
     try {
-
       signedTransactions = await this.walletConnect.signTransactions(
         transactionsGroup
       );
-
     } catch (err) {
       failedCallback(err);
       return;
     }
 
-  
     //call callback
     signedCallback();
 
-    let allSignedTransactions = [...signedTransactions, signedTransferTransaction, signedOptinCurrencyTransaction];
+    let allSignedTransactions = [
+      ...signedTransactions,
+      ...signedTransferTransactions,
+      signedOptinCurrencyTransaction,
+    ];
+
+    console.log(allSignedTransactions);
 
     let allSignedTransactionsDecoded = [];
 
-    for (const signedTx of allSignedTransactions){
-      if (signedTx){
-        allSignedTransactionsDecoded.push(algosdk.decodeSignedTransaction(signedTx));
+    for (const signedTx of allSignedTransactions) {
+      if (signedTx) {
+        allSignedTransactionsDecoded.push(
+          algosdk.decodeSignedTransaction(signedTx)
+        );
       }
     }
-
 
     let finalSignedTransactions = [];
 
-    for (const txName of this.transactionsOrder){
+    for (const txName of this.transactionsOrder) {
+      if (Array.isArray(this.transactions[txName])) {
+        for (const tx of this.transactions[txName]) {
+          const txId = tx.txID();
 
-      const txId = this.transactions[txName].txID();
-
-      let i = 0;
-      for (const signedTx of allSignedTransactionsDecoded){
-
-        if (signedTx.txn.txID() === txId){
-          finalSignedTransactions.push(allSignedTransactions[i]);
-          break;
+          let i = 0;
+          for (const signedTx of allSignedTransactionsDecoded) {
+            if (signedTx.txn.txID() === txId) {
+              finalSignedTransactions.push(allSignedTransactions[i]);
+              break;
+            }
+            i++;
+          }
         }
-        i++;
+      } else {
+        const txId = this.transactions[txName].txID();
+
+        let i = 0;
+        for (const signedTx of allSignedTransactionsDecoded) {
+          if (signedTx.txn.txID() === txId) {
+            finalSignedTransactions.push(allSignedTransactions[i]);
+            break;
+          }
+          i++;
+        }
       }
-
     }
-
-
 
     /*let finalSignedTransactions;
 

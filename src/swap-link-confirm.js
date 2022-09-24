@@ -3,9 +3,9 @@ import { loadAssetImage } from "./asset-details";
 
 export class SwapLinkConfirm {
 
-    constructor(swapLinkGenerator, walletConnect, baseURL){
+    constructor(swapLinkManager, walletConnect, baseURL){
 
-        this.swapLinkGenerator = swapLinkGenerator;
+        this.swapLinkManager = swapLinkManager;
         this.walletConnect = walletConnect;
         this.baseURL = baseURL;
 
@@ -17,11 +17,11 @@ export class SwapLinkConfirm {
 
     displayUI(){
 
-        const transactions = this.swapLinkGenerator.transactions;
+        const transactions = this.swapLinkManager.transactions;
 
-        const assetId = transactions.assetTransfer.assetIndex;
-        const buyerAddress = algosdk.encodeAddress(transactions.assetTransfer.to.publicKey);
-        const sellerAddress = algosdk.encodeAddress(transactions.assetTransfer.from.publicKey);
+        const assetIds = transactions.assetTransfers.map(tx => tx.assetIndex);
+        const buyerAddress = algosdk.encodeAddress(transactions.assetTransfers[0].to.publicKey);
+        const sellerAddress = algosdk.encodeAddress(transactions.assetTransfers[0].from.publicKey);
 
         let price;
         let currencyString;
@@ -38,23 +38,26 @@ export class SwapLinkConfirm {
 
                 let emoji = '';
 
-                if (this.swapLinkGenerator.currencyAsset.index === 360019122){
+                if (this.swapLinkManager.currencyAsset.index === 360019122){
                     emoji = '&#127844; '
                 }
                 
-                currencyString = `${this.swapLinkGenerator.currencyAsset.params["unit-name"]} ${emoji}(ASA ${this.swapLinkGenerator.currencyAsset.index})`;
+                currencyString = `${this.swapLinkManager.currencyAsset.params["unit-name"]} ${emoji}(ASA ${this.swapLinkManager.currencyAsset.index})`;
             }
         } else {
             price = 'nothing';
             currencyString = '';
         }
         
+        const assetList = this.swapLinkManager.assets.map(asset => {
+            return `<strong><a href="https://www.nftexplorer.app/asset/${asset.index}" target="_blank">${asset.index}</a></strong> (${asset.params.name})`
+        })
 
         this.ui.innerHTML = `<h4>Swap link</h4>
         <div class="row mb-3">
             <div class="col-md-6">
                 <ul>
-                    <li>You'll send asset <strong><a href="https://www.nftexplorer.app/asset/${assetId}" target="_blank">${assetId}</a></strong><br>(${this.swapLinkGenerator.asset.params.name})<br>
+                    <li>You'll send asset${assetList.length > 1 ? 's' : ''} ${assetList.join(', ')}<br>
                     <span class="wallet-info">TO ${buyerAddress}</span></li>
                     <li>You'll receive <span class="price">${price} ${currencyString}</span></li>
                 </ul>
@@ -96,7 +99,7 @@ export class SwapLinkConfirm {
         }
 
         //load asset imazge
-        loadAssetImage(assetId, this.ui.querySelector('#imgAssetPreview'), 512);
+        loadAssetImage(assetIds[0], this.ui.querySelector('#imgAssetPreview'), 512);
 
 
         this.ui.querySelector("#buttonSign").addEventListener('click', this.sign.bind(this))
@@ -133,7 +136,7 @@ export class SwapLinkConfirm {
         this.makeBusy();
 
         try {
-            const swapLink = await this.swapLinkGenerator.signAndGetLink(this.baseURL);
+            const swapLink = await this.swapLinkManager.signAndGetLink(this.baseURL);
             this.displayLink(swapLink);
 
         } catch (err){

@@ -105,17 +105,34 @@ export default class ClaimApiWrapper {
 
       const assetIds = event.currentTarget.dataset.assetIds.split(",");
 
+      //group by assetIds
+      let claimList = [];
+
+      for (const assetId of assetIds) {
+        let claim = claimList.find((c) => c.assetId === assetId);
+
+        if (!claim) {
+          const newClaim = {
+            assetId: assetId,
+            amount: 1,
+          };
+          claimList.push(newClaim);
+        } else {
+          claim.amount++;
+        }
+      }
+
       let optinTxns = [];
       let transferTxns = [];
 
-      for (const assetId of assetIds) {
+      for (const claim of claimList) {
         //prepare optin txn
         let optinTxn =
           algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
             from: this.walletConnect.walletAddress,
             to: this.walletConnect.walletAddress,
             amount: 0,
-            assetIndex: parseInt(assetId),
+            assetIndex: parseInt(claim.assetId),
             suggestedParams: this.suggestedParams,
           });
 
@@ -126,8 +143,8 @@ export default class ClaimApiWrapper {
           algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
             from: this.escrowAddress,
             to: this.walletConnect.walletAddress,
-            amount: 1,
-            assetIndex: parseInt(assetId),
+            amount: claim.amount,
+            assetIndex: parseInt(claim.assetId),
             suggestedParams: this.suggestedParams,
           });
 
@@ -139,18 +156,30 @@ export default class ClaimApiWrapper {
 
       const signedTxns = await this.walletConnect.signTransactions(allTxns);
 
-      const signedTxnsRaw = signedTxns.map((txBlob) =>
-        btoa(String.fromCharCode.apply(null, txBlob))
-      );
+      let signedTxnsJson = [];
+      for(let i = 0; i < signedTxns.length; i++){
+        signedTxnsJson.push({
+          amount: claimList[i].amount,
+          txn: btoa(String.fromCharCode.apply(null, signedTxns[i]))
+        });
+      }
+
+      /*const signedTxnsRaw = signedTxns.map((txBlob) => {
+        return {
+          amount: 0,
+          txn: btoa(String.fromCharCode.apply(null, txBlob)),
+        };
+      });*/
 
       callingButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
       Claiming...`;
       callingButton.disabled = true;
 
+
       //call api
       const response = await fetch(this.API_URL + "/claim/claim", {
         method: "POST",
-        body: JSON.stringify({ signedTxns: signedTxnsRaw }),
+        body: JSON.stringify({ signedTxns: signedTxnsJson }),
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",

@@ -7,7 +7,7 @@ const HtmlWebpackInjector = require('html-webpack-injector');
 module.exports = {
   entry: "./src/index.js",
   mode: "production",
-  //devtool: "inline-source-map",
+  devtool: "inline-source-map",
   output: {
     //filename: "main.js",
     filename: '[name].[contenthash].js',
@@ -24,6 +24,7 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [
         { from: "./src/assets", to: "" },
+        { from: "./src/CNAME", to: "CNAME", toType: 'file'},
         //{ from: "./src/index.html", to: "index.html" },
       ],
     }),

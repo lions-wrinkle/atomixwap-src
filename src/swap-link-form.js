@@ -1,8 +1,15 @@
 import algosdk from "algosdk";
 import { loadAssetImage } from "./asset-details";
+import config from "./config.js";
 
 export class SwapLinkForm {
-  constructor(currencies, defaultRoyalties, submitCallback, walletConnect, algoIndexer) {
+  constructor(
+    currencies,
+    defaultRoyalties,
+    submitCallback,
+    walletConnect,
+    algoIndexer
+  ) {
     this.ui = document.createElement("div");
     this.defaultRoyalties = defaultRoyalties;
     this.submitCallback = submitCallback;
@@ -10,21 +17,11 @@ export class SwapLinkForm {
     this.algoIndexer = algoIndexer;
     this.data = {};
     this.isAssetCreator = false;
+    this.numNfts = 0;
 
     this.ui.innerHTML = `<h4>Create swap link</h4>
         <form>
-                    <div class="mb-3">
-                        <div class="row">
-                            <div class="col-6">
-                              <label for="inputAssetId" class="form-label">NFT</label>
-                              <input type="text" class="form-control" id="inputAssetId" aria-describedby="assetIdHelp"
-                                  pattern="\\d*" required>
-                              <div id="assetIdHelp" class="form-text">ASA asset ID</div>
-                            </div>
-                            <div class="col-6">
-                              <img src="default.png" id="imgAssetPreview" width="auto" height="95">
-                            </div>
-                        </div>
+                    <div class="mb-3" id="nfts">
                     </div>
                     <div class="mb-3">
                         <label for="inputAlgoAddress" class="form-label">Receiver</label>
@@ -75,6 +72,9 @@ export class SwapLinkForm {
 
                 </form>`;
 
+    //add nft form
+    this.addNFT();
+
     //add currencies
     const inputCurrency = this.ui.querySelector("#inputCurrency");
 
@@ -94,16 +94,10 @@ export class SwapLinkForm {
       first = false;
     }
 
-    
-
     //listen to change events
     this.ui
       .querySelector("#inputRoyalties")
       .addEventListener("input", this.royaltiesChange.bind(this), false);
-
-    this.ui
-      .querySelector("#inputAssetId")
-      .addEventListener("focusout", this.assetIdFocusOut.bind(this), false);
 
     this.ui
       .querySelector("#inputCurrency")
@@ -115,13 +109,79 @@ export class SwapLinkForm {
       .addEventListener("submit", this.submitForm.bind(this), false);
 
     //update royalties
-    this.ui.querySelector("#inputRoyalties").dispatchEvent(new Event("input"))
+    this.ui.querySelector("#inputRoyalties").dispatchEvent(new Event("input"));
+  }
+
+  addNFT(event) {
+    //hide '+' button that have been just clicked
+    if (event && event.currentTarget) {
+      event.currentTarget.hidden = true;
+    }
+
+    if (this.numNfts >= config.maxNfts) {
+      return;
+    }
+
+    const nftsDiv = this.ui.querySelector("#nfts");
+
+    const newNft = document.createElement("div");
+    newNft.className = "row mt-2";
+    newNft.innerHTML = `
+      <div class="col-6">
+        <label for="inputAssetId" class="form-label">NFT</label>
+        <input type="text" class="form-control" id="inputAssetId" data-id="${this.numNfts}" aria-describedby="assetIdHelp"
+            pattern="\\d*">
+        <div id="assetIdHelp" class="form-text">ASA asset ID</div>
+      </div>
+      <div class="col-1">
+        <br>
+        <a href="javascript:void(0);" id="add-nft" hidden>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-plus-square mt-3" viewBox="0 0 16 16">
+            <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+          </svg>
+        </a>
+      </div>
+      <div class="col-5 text-center">
+        <img src="default.png" id="imgAssetPreview" width="auto" height="95">
+      </div>
+    `;
+
+    const inputAssetId = newNft.querySelector(`#inputAssetId`);
+
+    if (this.numNfts === 0) {
+      inputAssetId.required = true;
+    }
+
+    inputAssetId.addEventListener(
+      "focusout",
+      this.assetIdFocusOut.bind(this),
+      false
+    );
+
+    const addLink = newNft.querySelector(`#add-nft`);
+
+    if (this.numNfts < config.maxNfts - 1) {
+      addLink.hidden = false;
+      addLink.addEventListener("click", this.addNFT.bind(this), false);
+    }
+
+    nftsDiv.append(newNft);
+
+    this.numNfts++;
   }
 
   async assetIdFocusOut(event) {
+    const inputAssetId = event.currentTarget;
+    this.displayAssetInfo(inputAssetId);
+  }
 
-    const assetIdHelp = this.ui.querySelector("#assetIdHelp");
-    const inputAssetId = this.ui.querySelector("#inputAssetId");
+  async displayAssetInfo(inputAssetId) {
+    const parent = inputAssetId.parentNode.parentNode;
+
+    const assetIdHelp = parent.querySelector("#assetIdHelp");
+    const assetImg = parent.querySelector("#imgAssetPreview");
+    //const inputAssetId = this.ui.querySelector("#inputAssetId");
     const inputRoyalties = this.ui.querySelector("#inputRoyalties");
     const royaltiesdHelp = this.ui.querySelector("#royaltiesdHelp");
     const assetID = parseInt(inputAssetId.value);
@@ -140,7 +200,6 @@ export class SwapLinkForm {
         } else {
           this.isAssetCreator = false;
         }
-
       } catch (err) {
         console.log(err);
         assetIdHelp.innerHTML = `<span class="text-danger">Error: Asset with ID ${assetID} not found</span>`;
@@ -151,8 +210,7 @@ export class SwapLinkForm {
       this.checkRoyaltiesAvailability();
 
       //load asset imazge
-      loadAssetImage(assetID, this.ui.querySelector('#imgAssetPreview'), 200);
-
+      loadAssetImage(assetID, assetImg, 200);
     } else {
       assetIdHelp.innerHTML = `<span class="text-danger">Wrong asset ID format</span>`;
 
@@ -162,12 +220,10 @@ export class SwapLinkForm {
   }
 
   currencyChange(event) {
-
     this.checkRoyaltiesAvailability();
-
   }
 
-  checkRoyaltiesAvailability(){
+  async checkRoyaltiesAvailability() {
 
     const inputCurrency = this.ui.querySelector("#inputCurrency");
     const inputRoyalties = this.ui.querySelector("#inputRoyalties");
@@ -175,21 +231,58 @@ export class SwapLinkForm {
     const greenHeart = this.ui.querySelector("#royaltiesLoveGreen");
     const redHeart = this.ui.querySelector("#royaltiesLoveRed");
 
-    if (inputCurrency.value !== "algo" || this.isAssetCreator) {
+    //if there if multiple assets, check if they're from multiple creators
+    let multipleCreators = false;
+
+    if (this.numNfts > 1) {
+
+      const assetIds = [];
+
+      let prevCreator = '';
+      console.log("--")
+      for (const e of this.ui.querySelectorAll("#inputAssetId")){
+        if (e.value && !isNaN(e.value)) {
+          try {
+            const result = await this.algoIndexer.lookupAssetByID(parseInt(e.value)).do();
+            console.log(result.asset.params.creator);
+            if (prevCreator && prevCreator != result.asset.params.creator){
+              multipleCreators = true;
+            }
+
+            prevCreator = result.asset.params.creator;
+
+          } catch (err) {
+            console.error(err)
+          }
+        }
+      }
+
+    }
+
+    console.log(multipleCreators)
+
+    if (
+      inputCurrency.value !== "algo" ||
+      this.isAssetCreator ||
+      multipleCreators
+    ) {
       inputRoyalties.value = 0;
       inputRoyalties.disabled = true;
 
-      if (inputCurrency.value !== "algo"){
+      if (inputCurrency.value !== "algo") {
         royaltiesdHelp.textContent =
-        "Royalty not available for other token than Algo";
-      } else {
+          "Royalty not available for other token than Algo";
+      } else if (this.isAssetCreator) {
         royaltiesdHelp.textContent =
-            "You're the creator of this asset, royalty disabled.";
+          "You're the creator of this asset, royalty disabled.";
+      } else if (multipleCreators) {
+        royaltiesdHelp.textContent =
+          "Multiple creators detected, royalty disabled.";
       }
-      
+
       greenHeart.hidden = true;
       redHeart.hidden = true;
-    } else  {
+    } else {
       //inputRoyalties.value = this.defaultRoyalties;
       inputRoyalties.disabled = false;
       royaltiesdHelp.textContent = "";
@@ -201,7 +294,7 @@ export class SwapLinkForm {
 
   royaltiesChange(event) {
     const royaltiesSlider = this.ui.querySelector("#inputRoyalties");
-    
+
     this.ui.querySelector(
       "#royaltiesValueLabel"
     ).textContent = `${royaltiesSlider.value} %`;
@@ -214,42 +307,57 @@ export class SwapLinkForm {
     const sliderMin = Number(royaltiesSlider.min);
     const sliderMax = Number(royaltiesSlider.max);
 
-    const fontSize = minFontSize + (maxFontSize - minFontSize)*((royaltiesSlider.value - royaltiesSlider.min)/(royaltiesSlider.max - royaltiesSlider.min));
+    const fontSize =
+      minFontSize +
+      (maxFontSize - minFontSize) *
+        ((royaltiesSlider.value - royaltiesSlider.min) /
+          (royaltiesSlider.max - royaltiesSlider.min));
 
     greenHeart.style = `font-size: ${fontSize}rem`;
 
-    if (royaltiesSlider.value > sliderMin + (sliderMax - sliderMin)/2){
+    if (royaltiesSlider.value > sliderMin + (sliderMax - sliderMin) / 2) {
+      const redHeartOpacity =
+        (royaltiesSlider.value - (sliderMin + (sliderMax - sliderMin) / 2)) /
+        ((sliderMax - sliderMin) / 2);
 
-      const redHeartOpacity = (royaltiesSlider.value - (sliderMin + (sliderMax - sliderMin)/2))/((sliderMax - sliderMin)/2);
-
-      let animation = '';
-      if (royaltiesSlider.value === royaltiesSlider.max){
-        animation = 'animation: animateHeart 1.2s infinite;';
+      let animation = "";
+      if (royaltiesSlider.value === royaltiesSlider.max) {
+        animation = "animation: animateHeart 1.2s infinite;";
       }
 
       redHeart.hidden = false;
       redHeart.style = `font-size: ${fontSize}rem; ${animation}`;
-      greenHeart.style = `font-size: ${fontSize}rem; opacity: ${1-redHeartOpacity}`;
-
+      greenHeart.style = `font-size: ${fontSize}rem; opacity: ${
+        1 - redHeartOpacity
+      }`;
     } else {
       redHeart.hidden = true;
     }
-    
   }
 
   async validate() {
 
-    await this.assetIdFocusOut();
+    await this.checkRoyaltiesAvailability();
 
-    this.data.assetId = this.ui.querySelector("#inputAssetId").value;
+    const assetIds = [];
+    this.ui.querySelectorAll("#inputAssetId").forEach(async (e) => {
+      if (e.value && !isNaN(e.value)) {
+        assetIds.push(parseInt(e.value, 10));
+        await this.displayAssetInfo(e);
+      } else if (e.value && isNaN(e.value)) {
+        throw new Error(`Wrong format for asset id ${e.value}`);
+      }
+    });
+
+    this.data.assetIds = assetIds;
     this.data.buyerAddress = this.ui.querySelector("#inputAlgoAddress").value;
     this.data.price = this.ui.querySelector("#inputPrice").value;
     this.data.currency = this.ui.querySelector("#inputCurrency").value;
     this.data.royaltiesPercent = this.ui.querySelector("#inputRoyalties").value;
     this.data.acceptRisk = this.ui.querySelector("#checkAcceptRisk").checked;
 
-    if (isNaN(this.data.assetId)) {
-      throw new Error("Asset ID is not a number");
+    if (this.data.assetIds.length === 0) {
+      throw new Error("No asset id provided or wrong format");
     } else if (!algosdk.isValidAddress(this.data.buyerAddress)) {
       throw new Error("Alogorand wallet address is not valid");
     } else if (isNaN(this.data.price)) {
@@ -286,7 +394,7 @@ export class SwapLinkForm {
 
   stopBusy() {
     const submitButton = this.ui.querySelector("#buttonSubmit");
-    submitButton.textContent = 'Preview';
+    submitButton.textContent = "Preview";
     submitButton.disabled = false;
   }
 }

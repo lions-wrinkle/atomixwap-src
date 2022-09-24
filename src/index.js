@@ -146,7 +146,7 @@ async function submitForm(form){
     const swapLinkGenerator = new SwapLinkManager(walletConnect, algodClient, algoIndexer);
 
     const fields = {
-        assetId: parseInt(form.data.assetId, 10),
+        assetIds: form.data.assetIds,
         sellerAddress: walletConnect.walletAddress,
         buyerAddress: form.data.buyerAddress,
         price: Number(form.data.price),
@@ -158,8 +158,9 @@ async function submitForm(form){
         await swapLinkGenerator.generateTransactions(fields);
     } catch (err){
         form.stopBusy();
+        console.error(err);
         alert(err);
-        
+        return;
     }
     
 

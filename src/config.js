@@ -2,7 +2,9 @@
 
 const config = {
 
-    network: 'mainnet',
+    maxNfts: 4,
+
+    network: 'testnet',
 
     urls: {
         mainnet: {
@@ -17,6 +19,7 @@ const config = {
             algoIndexerUrl: 'https://algoindexer.testnet.algoexplorerapi.io',
 
             claimApiUrl: 'https://api.atomixwap.xyz',
+            //claimApiUrl: 'https://localhost',
             peraApiUrl: 'https://testnet.api.perawallet.app/v1'
         }
     }
