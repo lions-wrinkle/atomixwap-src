@@ -42,7 +42,7 @@ export class SwapLinkConfirm {
                     emoji = '&#127844; '
                 }
                 
-                currencyString = `${this.swapLinkManager.currencyAsset.params["unit-name"]} ${emoji}(ASA ${this.swapLinkManager.currencyAsset.index})`;
+                currencyString = `${this.swapLinkManager.currencyAsset.params["name"]} ${emoji}(ASA ${this.swapLinkManager.currencyAsset.index})`;
             }
         } else {
             price = 'nothing';

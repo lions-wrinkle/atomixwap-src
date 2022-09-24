@@ -37,11 +37,23 @@ export class SwapLinkManager {
     }
 
     //load currency asset
-    if (fields.currency !== "algo") {
+    if (fields.currency !== "algo" && fields.currency !== "nft") {
+
       const result = await this.algoIndexer
         .lookupAssetByID(parseInt(fields.currency))
         .do();
       this.currencyAsset = result.asset;
+
+    } else if (fields.currency === "nft"){
+
+      console.log(fields.priceAssetId)
+      const result = await this.algoIndexer
+        .lookupAssetByID(fields.priceAssetId)
+        .do();
+      this.currencyAsset = result.asset;
+
+      fields.price = 1;
+
     }
 
     let params = await this.algodClient.getTransactionParams().do();
@@ -111,7 +123,13 @@ export class SwapLinkManager {
           });
         this.transactionsOrder.push("payment");
       } else {
-        const currencyAssetId = parseInt(fields.currency);
+        let currencyAssetId;
+
+        if (fields.currency !== "nft") {
+          currencyAssetId = parseInt(fields.currency);
+        } else {
+          currencyAssetId = fields.priceAssetId;
+        }
 
         this.transactions.payment =
           algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({

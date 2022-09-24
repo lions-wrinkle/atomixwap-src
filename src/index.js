@@ -15,10 +15,6 @@ if (config.network === "testnet"){
 
     currencies = [
         {
-            name: "ALGO",
-            assetId: "algo"
-        },
-        {
             name: "TEST DEGEN",
             assetId: "94799644"
         }
@@ -28,10 +24,6 @@ if (config.network === "testnet"){
 } else if (config.network === "mainnet"){
 
     currencies = [
-        {
-            name: "ALGO",
-            assetId: "algo"
-        },
         {
             name: "DEGEN",
             assetId: "417708610"
@@ -150,6 +142,7 @@ async function submitForm(form){
         sellerAddress: walletConnect.walletAddress,
         buyerAddress: form.data.buyerAddress,
         price: Number(form.data.price),
+        priceAssetId: form.data.priceAssetId,
         currency: form.data.currency,
         royalties: Number(((form.data.price*form.data.royaltiesPercent)/100).toFixed(2)),
     }

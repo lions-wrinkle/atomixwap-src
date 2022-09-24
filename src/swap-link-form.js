@@ -18,6 +18,7 @@ export class SwapLinkForm {
     this.data = {};
     this.isAssetCreator = false;
     this.numNfts = 0;
+    this.ndfWalletAddress;
 
     this.ui.innerHTML = `<h4>Create swap link</h4>
         <form>
@@ -25,16 +26,21 @@ export class SwapLinkForm {
                     </div>
                     <div class="mb-3">
                         <label for="inputAlgoAddress" class="form-label">Receiver</label>
-                        <input type="text" class="form-control" id="inputAlgoAddress" pattern="[A-Z2-7]{58}"
+                        <input type="text" class="form-control" id="inputAlgoAddress"
                             aria-describedby="AlgoAddressdHelp" required>
-                        <div id="AlgoAddressdHelp" class="form-text">Algorand Wallet Address</div>
+                        <div id="AlgoAddressdHelp" class="form-text">Algorand Wallet Address or NFD</div>
                     </div>
                     <div class="mb-3">
-                        <label for="inputPrice" class="form-label">Price</label>
-
                         <div class="row">
-                            <div class="col">
-                                <input type="number" class="form-control" id="inputPrice" min="0" step="1" required>
+                        <label for="inputPrice" class="form-label" id="price-label">Price</label>
+                        <label for="inputPriceAssetId" class="form-label" id="nft-label" hidden>NFT to receive</label>
+                            <div class="col" id="price-div">
+                                <input type="number" class="form-control" id="inputPrice" min="0" step="1">
+                            </div>
+                            <div class="col" id="nft-div" hidden>
+                                <input type="text" class="form-control" id="inputPriceAssetId" aria-describedby="priceAssetIdHelp"
+                                    pattern="\\d*">
+                                <div id="priceAssetIdHelp" class="form-text">ASA asset ID</div>
                             </div>
                             <div class="col">
                                 <select class="form-select" id="inputCurrency" aria-label="Select currency">
@@ -78,20 +84,31 @@ export class SwapLinkForm {
     //add currencies
     const inputCurrency = this.ui.querySelector("#inputCurrency");
 
-    let first = true;
+    //add algo by default
+    const algoOption = document.createElement("option");
+    algoOption.textContent = "ALGO";
+    algoOption.value = "algo";
+    algoOption.selected = true;
+
+    inputCurrency.append(algoOption);
+
+    //add nft option
+    const nftOption = document.createElement("option");
+    nftOption.textContent = "NFT";
+    nftOption.value = "nft";
+
+    inputCurrency.append(nftOption);
+
+    //add asa option
+    const asaOptGroup = document.createElement("optgroup");
+    asaOptGroup.label = "ASAs";
+    inputCurrency.append(asaOptGroup);
 
     for (const currency of currencies) {
       const option = document.createElement("option");
       option.textContent = currency.name;
       option.value = currency.assetId;
-
-      if (first) {
-        option.selected = true;
-      }
-
-      inputCurrency.append(option);
-
-      first = false;
+      asaOptGroup.append(option);
     }
 
     //listen to change events
@@ -107,6 +124,11 @@ export class SwapLinkForm {
     this.ui
       .querySelector("form")
       .addEventListener("submit", this.submitForm.bind(this), false);
+
+    //find nfd
+    this.ui
+      .querySelector("#inputAlgoAddress")
+      .addEventListener("focusout", this.checkNfd.bind(this), false);
 
     //update royalties
     this.ui.querySelector("#inputRoyalties").dispatchEvent(new Event("input"));
@@ -219,12 +241,67 @@ export class SwapLinkForm {
     }
   }
 
+  async checkNfd(event) {
+    const address = event.currentTarget.value;
+
+    const addressHelp = this.ui.querySelector("#AlgoAddressdHelp");
+
+    this.ndfWalletAddress = undefined;
+
+    if (address.endsWith(".algo")) {
+      try {
+        const response = await fetch("https://api.nf.domains/nfd/" + address);
+
+        if (response.status === 200) {
+          const json = await response.json();
+          if (json.owner) {
+            addressHelp.innerHTML = `<span class="text-success">${json.owner}</span>`;
+            this.ndfWalletAddress = json.owner;
+          }
+        } else {
+          addressHelp.innerHTML = `<span class="text-danger">Error: NFD ${address} not found</span>`;
+        }
+      } catch (err) {
+        console.error(err);
+        addressHelp.innerHTML = `<span class="text-danger">Error: Can't load NFD</span>`;
+      }
+    } else if (!algosdk.isValidAddress(address)) {
+      addressHelp.innerHTML = `<span class="text-danger">Wrong wallet address format</span>`;
+    } else {
+      addressHelp.textContent = 'Algorand Wallet Address or NFD';
+    }
+  }
+
   currencyChange(event) {
+    const currency = event.currentTarget.value;
+
+    const nftInput = this.ui.querySelector("#nft-div");
+    const nftLabel = this.ui.querySelector("#nft-label");
+    const priceInput = this.ui.querySelector("#price-div");
+    const priceLabel = this.ui.querySelector("#price-label");
+
+    if (currency === "nft") {
+      nftInput.hidden = false;
+      nftLabel.hidden = false;
+      nftInput.querySelector("input").required = true;
+
+      priceInput.hidden = true;
+      priceLabel.hidden = true;
+      priceInput.querySelector("input").required = false;
+    } else {
+      nftInput.hidden = true;
+      nftLabel.hidden = true;
+      nftInput.querySelector("input").required = false;
+
+      priceInput.hidden = false;
+      priceLabel.hidden = false;
+      priceInput.querySelector("input").required = true;
+    }
+
     this.checkRoyaltiesAvailability();
   }
 
   async checkRoyaltiesAvailability() {
-
     const inputCurrency = this.ui.querySelector("#inputCurrency");
     const inputRoyalties = this.ui.querySelector("#inputRoyalties");
     const royaltiesdHelp = this.ui.querySelector("#royaltiesdHelp");
@@ -235,31 +312,30 @@ export class SwapLinkForm {
     let multipleCreators = false;
 
     if (this.numNfts > 1) {
-
       const assetIds = [];
 
-      let prevCreator = '';
-      console.log("--")
-      for (const e of this.ui.querySelectorAll("#inputAssetId")){
+      let prevCreator = "";
+      console.log("--");
+      for (const e of this.ui.querySelectorAll("#inputAssetId")) {
         if (e.value && !isNaN(e.value)) {
           try {
-            const result = await this.algoIndexer.lookupAssetByID(parseInt(e.value)).do();
+            const result = await this.algoIndexer
+              .lookupAssetByID(parseInt(e.value))
+              .do();
             console.log(result.asset.params.creator);
-            if (prevCreator && prevCreator != result.asset.params.creator){
+            if (prevCreator && prevCreator != result.asset.params.creator) {
               multipleCreators = true;
             }
 
             prevCreator = result.asset.params.creator;
-
           } catch (err) {
-            console.error(err)
+            console.error(err);
           }
         }
       }
-
     }
 
-    console.log(multipleCreators)
+    console.log(multipleCreators);
 
     if (
       inputCurrency.value !== "algo" ||
@@ -336,7 +412,6 @@ export class SwapLinkForm {
   }
 
   async validate() {
-
     await this.checkRoyaltiesAvailability();
 
     const assetIds = [];
@@ -356,17 +431,40 @@ export class SwapLinkForm {
     this.data.royaltiesPercent = this.ui.querySelector("#inputRoyalties").value;
     this.data.acceptRisk = this.ui.querySelector("#checkAcceptRisk").checked;
 
+    
+
     if (this.data.assetIds.length === 0) {
       throw new Error("No asset id provided or wrong format");
-    } else if (!algosdk.isValidAddress(this.data.buyerAddress)) {
-      throw new Error("Alogorand wallet address is not valid");
+    } else if (this.data.buyerAddress.endsWith('.algo') && !this.ndfWalletAddress){
+      throw new Error("NFD not found");
+    } else if (!this.data.buyerAddress.endsWith('.algo') && !algosdk.isValidAddress(this.data.buyerAddress)) {
+      throw new Error("Algorand wallet address is not valid");
     } else if (isNaN(this.data.price)) {
       throw new Error("Price is not a number");
     } else if (isNaN(this.data.royaltiesPercent)) {
       throw new Error("Royalties value is not a number");
     } else if (!this.data.acceptRisk) {
       throw new Error("Risk not accepted");
+    } else if (
+      this.data.currency === "nft" &&
+      isNaN(this.ui.querySelector("#inputPriceAssetId").value)
+    ) {
+      throw new Error(
+        `Wrong format for asset id ${
+          this.ui.querySelector("#inputPriceAssetId").value
+        }`
+      );
+    } 
+
+    if (this.data.buyerAddress.endsWith('.algo')){
+      this.data.buyerAddress = this.ndfWalletAddress;
     }
+
+    this.data.priceAssetId = parseInt(
+      this.ui.querySelector("#inputPriceAssetId").value
+    );
+
+    
   }
 
   async submitForm(event) {
@@ -377,6 +475,7 @@ export class SwapLinkForm {
       await this.validate();
     } catch (err) {
       alert(err);
+      return;
     }
 
     if (this.submitCallback) {
