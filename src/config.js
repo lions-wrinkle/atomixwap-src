@@ -4,7 +4,7 @@ const config = {
 
     maxNfts: 4,
 
-    network: 'testnet',
+    network: 'mainnet',
 
     urls: {
         mainnet: {

@@ -250,14 +250,23 @@ export class SwapLinkForm {
 
     if (address.endsWith(".algo")) {
       try {
-        const response = await fetch("https://api.nf.domains/nfd/" + address);
+        const response = await fetch("https://api.nf.domains/nfd/" + address +"?view=brief" );
 
         if (response.status === 200) {
           const json = await response.json();
-          if (json.owner) {
-            addressHelp.innerHTML = `<span class="text-success">${json.owner}</span>`;
+
+          if (json.caAlgo && json.caAlgo.length > 0){
+            this.ndfWalletAddress = json.caAlgo[0];
+          } else if (json.unverifiedCaAlgo && json.unverifiedCaAlgo.length > 0){
+            this.ndfWalletAddress = json.unverifiedCaAlgo[0];
+          } else if (json.state === 'owned' && json.owner){
             this.ndfWalletAddress = json.owner;
           }
+
+          if (this.ndfWalletAddress) {
+            addressHelp.innerHTML = `<span class="text-success">${this.ndfWalletAddress}</span>`;
+          }
+          
         } else {
           addressHelp.innerHTML = `<span class="text-danger">Error: NFD ${address} not found</span>`;
         }
@@ -315,15 +324,15 @@ export class SwapLinkForm {
       const assetIds = [];
 
       let prevCreator = "";
-      console.log("--");
+
       for (const e of this.ui.querySelectorAll("#inputAssetId")) {
         if (e.value && !isNaN(e.value)) {
           try {
             const result = await this.algoIndexer
               .lookupAssetByID(parseInt(e.value))
               .do();
-            console.log(result.asset.params.creator);
-            if (prevCreator && prevCreator != result.asset.params.creator) {
+
+              if (prevCreator && prevCreator != result.asset.params.creator) {
               multipleCreators = true;
             }
 
@@ -335,7 +344,6 @@ export class SwapLinkForm {
       }
     }
 
-    console.log(multipleCreators);
 
     if (
       inputCurrency.value !== "algo" ||
@@ -412,6 +420,7 @@ export class SwapLinkForm {
   }
 
   async validate() {
+
     await this.checkRoyaltiesAvailability();
 
     const assetIds = [];
@@ -468,12 +477,16 @@ export class SwapLinkForm {
   }
 
   async submitForm(event) {
+
+    this.makeBusy();
+
     //cancel default behaviour when submiting a form
     event.preventDefault();
 
     try {
       await this.validate();
     } catch (err) {
+      this.stopBusy();
       alert(err);
       return;
     }

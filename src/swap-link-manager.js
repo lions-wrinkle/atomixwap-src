@@ -46,7 +46,6 @@ export class SwapLinkManager {
 
     } else if (fields.currency === "nft"){
 
-      console.log(fields.priceAssetId)
       const result = await this.algoIndexer
         .lookupAssetByID(fields.priceAssetId)
         .do();
@@ -216,7 +215,6 @@ export class SwapLinkManager {
 
     algosdk.assignGroupID(transactionsArray);
 
-    console.log(transactionsArray);
   }
 
   //seller
@@ -297,10 +295,6 @@ export class SwapLinkManager {
       }
     }
 
-    console.log("TRANSACTIONS");
-    console.log(this.transactions);
-    console.log("SIGNED TRANSACTIONS");
-    console.log(namedSignedTransactions);
 
     let outputJson = {
       price: price,
@@ -325,8 +319,6 @@ export class SwapLinkManager {
         1000000;
     }
 
-    console.log("JSON");
-    console.log(outputJson);
 
     const jsonStr = JSON.stringify(outputJson);
     const base64Str = btoa(jsonStr);
@@ -372,7 +364,6 @@ export class SwapLinkManager {
       signedOptinCurrencyTransaction,
     ];
 
-    console.log(allSignedTransactions);
 
     let allSignedTransactionsDecoded = [];
 

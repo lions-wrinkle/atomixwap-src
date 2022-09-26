@@ -41,8 +41,6 @@ let round = 0;
 backward.addEventListener('change', async (event) => {
 
   const result = await algodClient.status().do();
-  console.log(result["last-round"]);
-  console.log(event);
   round = result["last-round"] - parseInt(event.target.value);
   
 });
@@ -115,7 +113,7 @@ backward.addEventListener('change', async (event) => {
 
               //load asset details
               const assetResult = await algoIndexer.lookupAssetByID(assetID).do();
-              console.log(assetResult)
+
               assetName = assetResult["asset"]["params"]["name"];
 
             }

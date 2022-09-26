@@ -122,11 +122,12 @@ export class WalletConnect {
 
     if (this.walletAddress){
 
-      const response = await fetch('https://api.nf.domains/nfd/address?address='+this.walletAddress);
+      const response = await fetch('https://api.nf.domains/nfd/address?address='+this.walletAddress+'&limit=1&view=thumbnail');
 
       if (response.status === 200){
         const json = await response.json();
-        if (json[0] && json[0].name){
+
+        if (json.length > 0 && json[0].caAlgo && json[0].caAlgo.includes(this.walletAddress)){
           this.nfd = json[0].name;
           this.updateUI();
         }

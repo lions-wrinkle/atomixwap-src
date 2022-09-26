@@ -7,7 +7,7 @@ const HtmlWebpackInjector = require('html-webpack-injector');
 module.exports = {
   entry: "./src/index.js",
   mode: "production",
-  devtool: "inline-source-map",
+  //devtool: "inline-source-map",
   output: {
     //filename: "main.js",
     filename: '[name].[contenthash].js',

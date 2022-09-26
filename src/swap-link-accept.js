@@ -22,13 +22,9 @@ export class SwapLinkAccept {
     const decodedData = atob(swapData);
     const jsonData = JSON.parse(decodedData);
 
-    console.log(jsonData);
-
     this.signedTransferTxs = jsonData.signedTransferTxs.map((tx) => {
       return SwapLinkManager.base64ToSignedTx(tx);
     });
-
-    console.log(this.signedTransferTxs);
 
     const decodedSignedTransactions = this.signedTransferTxs.map((tx) => {
       return algosdk.decodeSignedTransaction(tx);
