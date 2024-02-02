@@ -157,10 +157,10 @@ export default class ClaimApiWrapper {
       const signedTxns = await this.walletConnect.signTransactions(allTxns);
 
       let signedTxnsJson = [];
-      for(let i = 0; i < signedTxns.length; i++){
+      for (let i = 0; i < optinTxns.length; i++) {
         signedTxnsJson.push({
           amount: claimList[i].amount,
-          txn: btoa(String.fromCharCode.apply(null, signedTxns[i]))
+          txn: btoa(String.fromCharCode.apply(null, signedTxns[i])),
         });
       }
 
@@ -174,7 +174,6 @@ export default class ClaimApiWrapper {
       callingButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
       Claiming...`;
       callingButton.disabled = true;
-
 
       //call api
       const response = await fetch(this.API_URL + "/claim/claim", {

@@ -223,7 +223,7 @@ export class SwapLinkForm {
           this.isAssetCreator = false;
         }
       } catch (err) {
-        console.log(err);
+        console.error(err);
         assetIdHelp.innerHTML = `<span class="text-danger">Error: Asset with ID ${assetID} not found</span>`;
 
         this.isAssetCreator = false;

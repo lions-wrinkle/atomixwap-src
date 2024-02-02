@@ -52,8 +52,6 @@ export class SwapLinkAccept {
       lastRound: decodedSignedTransactions[0].txn.lastRound,
     };
 
-    console.log(this.fields);
-
     //load current block
     const nodeStatus = await this.algodClient.status().do();
     const lastRound = nodeStatus["last-round"];
@@ -117,6 +115,7 @@ export class SwapLinkAccept {
           emoji = "&#127844; ";
         }
 
+        price = price/Math.pow(10, this.swapLinkManager.currencyAsset.params["decimals"])
         currencyString = `${this.swapLinkManager.currencyAsset.params["unit-name"]} ${emoji}(ASA ${this.swapLinkManager.currencyAsset.index})`;
       }
 

@@ -1,2 +1,4 @@
 /graphics
 /node_modules
+/dist
+/watcher

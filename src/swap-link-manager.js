@@ -123,22 +123,14 @@ export class SwapLinkManager {
         this.transactionsOrder.push("payment");
       } else {
         let currencyAssetId;
+        let price = fields.price;
 
         if (fields.currency !== "nft") {
           currencyAssetId = parseInt(fields.currency);
+          price = price*Math.pow(10, this.currencyAsset.params.decimals)
         } else {
           currencyAssetId = fields.priceAssetId;
         }
-
-        this.transactions.payment =
-          algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-            suggestedParams: { ...params },
-            from: fields.buyerAddress,
-            to: fields.sellerAddress,
-            assetIndex: currencyAssetId,
-            amount: Math.round(fields.price),
-          });
-        this.transactionsOrder.push("payment");
 
         this.transactions.optinCurrency =
           algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
@@ -149,6 +141,18 @@ export class SwapLinkManager {
             amount: 0,
           });
         this.transactionsOrder.push("optinCurrency");
+
+        this.transactions.payment =
+          algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+            suggestedParams: { ...params },
+            from: fields.buyerAddress,
+            to: fields.sellerAddress,
+            assetIndex: currencyAssetId,
+            amount: Math.round(price),
+          });
+        this.transactionsOrder.push("payment");
+
+        
       }
     }
 
@@ -291,7 +295,7 @@ export class SwapLinkManager {
         price = this.transactions.payment.amount / 1000000;
       } else {
         currency = this.transactions.payment.assetIndex;
-        price = this.transactions.payment.amount;
+        price = this.transactions.payment.amount / Math.pow(10, this.currencyAsset.params.decimals);
       }
     }
 

@@ -39,23 +39,27 @@ export class WalletConnect {
 
   displayConnectUI() {
     this.ui.innerHTML = `
-    <button class="btn-myalgo ${this.btnClass}" id="buttonMyAlgo">MyAlgo</button>
     <button class="btn-pera ${this.btnClass}" id="buttonPera">Pera</button>
+    <button class="btn-defly ${this.btnClass}" id="buttonDefly">Defly</button>
+    <br />
+    
     `;
 
-    this.ui
+    /*this.ui
       .querySelector("#buttonMyAlgo")
-      .addEventListener("click", this.connectMyAlgo.bind(this));
+      .addEventListener("click", this.connectMyAlgo.bind(this));*/
     this.ui
       .querySelector("#buttonPera")
       .addEventListener("click", this.connectPera.bind(this));
+    this.ui
+      .querySelector("#buttonDefly")
+      .addEventListener("click", this.connectDefly.bind(this));
   }
 
   displayConnectedUI() {
-
     let displayAddress;
 
-    if (this.nfd){
+    if (this.nfd) {
       displayAddress = this.nfd;
     } else {
       displayAddress = this.walletAddress;
@@ -86,20 +90,41 @@ export class WalletConnect {
       const { PeraWalletConnect } = await import("@perawallet/connect");
       this.wallet = new PeraWalletConnect();
 
-      this.wallet.reconnectSession().then((accounts) => {
-        console.log(`Reconnected ${accounts}`);
+      try {
+        this.wallet.connector?.on("disconnect", this.disconnect.bind(this));
+        const accounts = await this.wallet.reconnectSession();
 
-        if (accounts[0]) {
+        if (accounts?.[0]) {
           this.walletAddress = accounts[0];
           this.saveState();
         }
+      } catch (err) {
+        console.error(err);
+        this.wallet.disconnect();
+      }
 
-        // Setup the disconnect event listener
+      // Setup the disconnect event listener
+      //this.wallet.connector?.on("disconnect", this.disconnect.bind(this));
+    } else if (this.walletType === "defly" && this.walletAddress) {
+      const { DeflyWalletConnect } = await import("@blockshake/defly-connect");
+      this.wallet = new DeflyWalletConnect();
+
+      try {
         this.wallet.connector?.on("disconnect", this.disconnect.bind(this));
-      });
-    }
+        const accounts = await this.wallet.reconnectSession();
 
-    
+        if (accounts?.[0]) {
+          this.walletAddress = accounts[0];
+          this.saveState();
+        }
+      } catch (err) {
+        console.error(err);
+        this.wallet.disconnect();
+      }
+
+      // Setup the disconnect event listener
+      //this.wallet.connector?.on("disconnect", this.disconnect.bind(this));
+    }
   }
 
   saveState() {
@@ -118,21 +143,26 @@ export class WalletConnect {
   }
 
   //load nfd domain
-  async loadNfd(){
+  async loadNfd() {
+    if (this.walletAddress) {
+      const response = await fetch(
+        "https://api.nf.domains/nfd/address?address=" +
+          this.walletAddress +
+          "&limit=1&view=thumbnail"
+      );
 
-    if (this.walletAddress){
-
-      const response = await fetch('https://api.nf.domains/nfd/address?address='+this.walletAddress+'&limit=1&view=thumbnail');
-
-      if (response.status === 200){
+      if (response.status === 200) {
         const json = await response.json();
 
-        if (json.length > 0 && json[0].caAlgo && json[0].caAlgo.includes(this.walletAddress)){
+        if (
+          json.length > 0 &&
+          json[0].caAlgo &&
+          json[0].caAlgo.includes(this.walletAddress)
+        ) {
           this.nfd = json[0].name;
           this.updateUI();
         }
       }
-
     }
   }
 
@@ -159,47 +189,76 @@ export class WalletConnect {
   }
 
   async connectPera() {
-
     const { PeraWalletConnect } = await import("@perawallet/connect");
 
     this.wallet = new PeraWalletConnect();
 
-    this.wallet.connector?.killSession();
+    //this.wallet.connector?.killSession();
 
-    await this.wallet.disconnect();
+    if (this.wallet?.connector?.connected) {
+      await this.wallet.disconnect();
+    }
 
     try {
-
+      await this.wallet.disconnect();
       const accountsSharedByUser = await this.wallet.connect();
 
-    if (accountsSharedByUser[0]) {
-      this.walletType = "pera";
-      this.walletAddress = accountsSharedByUser[0];
-      this.saveState();
-      this.updateUI();
-      this.loadNfd();
+      if (accountsSharedByUser[0]) {
+        this.walletType = "pera";
+        this.walletAddress = accountsSharedByUser[0];
+        this.saveState();
+        this.updateUI();
+        this.loadNfd();
 
-      // Setup the disconnect event listener
-      this.wallet.connector?.on("disconnect", this.disconnect.bind(this));
+        // Setup the disconnect event listener
+        this.wallet.connector?.on("disconnect", this.disconnect.bind(this));
 
-      this.connectedCallback();
-    }
-
-    } catch (err) {
-
-      if (err?.data?.type !== "CONNECT_MODAL_CLOSED") {
-
-        alert(err.message);
-
+        this.connectedCallback();
       }
-
+    } catch (err) {
+      if (err?.data?.type !== "CONNECT_MODAL_CLOSED") {
+        alert(err.message);
+      }
     }
-    
+  }
+
+  async connectDefly() {
+    const { DeflyWalletConnect } = await import("@blockshake/defly-connect");
+
+    this.wallet = new DeflyWalletConnect();
+
+    //this.wallet.connector?.killSession();
+
+    if (this.wallet?.connector?.connected) {
+      await this.wallet.disconnect();
+    }
+
+    try {
+      await this.wallet.disconnect();
+      const accountsSharedByUser = await this.wallet.connect();
+
+      if (accountsSharedByUser[0]) {
+        this.walletType = "defly";
+        this.walletAddress = accountsSharedByUser[0];
+        this.saveState();
+        this.updateUI();
+        this.loadNfd();
+
+        // Setup the disconnect event listener
+        this.wallet.connector?.on("disconnect", this.disconnect.bind(this));
+
+        this.connectedCallback();
+      }
+    } catch (err) {
+      if (err?.data?.type !== "CONNECT_MODAL_CLOSED") {
+        alert(err.message);
+      }
+    }
   }
 
   disconnect() {
-    if (this.walletType === "pera") {
-      this.wallet.disconnect();
+    if (this.walletType === "pera" || this.walletType === "defly") {
+      this.wallet?.disconnect();
     }
 
     this.clearState();
@@ -216,13 +275,11 @@ export class WalletConnect {
     if (this.walletType === "myalgo") {
       const transactionsToSign = [];
 
-
       for (const tx of transactions) {
         if (encodeAddress(tx.from.publicKey) === this.walletAddress) {
           transactionsToSign.push(tx.toByte());
         }
       }
-
 
       try {
         signedTransactions = await this.wallet.signTransaction(
@@ -233,19 +290,18 @@ export class WalletConnect {
       } catch (err) {
         throw err;
       }
-    } else if (this.walletType === "pera") {``
+    } else if (this.walletType === "pera" || this.walletType === "defly") {
+      ``;
 
       const transactionsToSign = transactions.map((tx) => ({
         txn: tx,
         signers: [encodeAddress(tx.from.publicKey)],
       }));
 
-      
-
       try {
-        signedTransactions = await this.wallet.signTransaction(
-          [transactionsToSign]
-        );
+        signedTransactions = await this.wallet.signTransaction([
+          transactionsToSign,
+        ]);
       } catch (err) {
         throw err;
       }
